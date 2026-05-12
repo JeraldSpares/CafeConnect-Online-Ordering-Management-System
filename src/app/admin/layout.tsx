@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { href: "/admin/inventory", label: "Inventory", icon: "fa-boxes-stacked" },
   { href: "/admin/customers", label: "Customers", icon: "fa-users" },
   { href: "/admin/reports",   label: "Reports",   icon: "fa-chart-line" },
+  { href: "/admin/settings",  label: "Settings",  icon: "fa-user-gear" },
 ];
 
 export default async function AdminLayout({

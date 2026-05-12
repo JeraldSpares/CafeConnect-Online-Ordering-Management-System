@@ -1,5 +1,227 @@
 // Lightweight, dependency-free SVG charts tailored for the CafeConnect dashboard.
 
+export type LineSeries = {
+  label: string;
+  values: number[];
+  color: string;
+  dashed?: boolean;
+};
+
+export function LineChart({
+  series,
+  labels,
+  height = 220,
+  formatY = (v) => `${v}`,
+}: {
+  series: LineSeries[];
+  labels: string[];
+  height?: number;
+  formatY?: (v: number) => string;
+}) {
+  if (series.length === 0 || labels.length === 0) return null;
+  const W = 640;
+  const padL = 44;
+  const padR = 12;
+  const padT = 12;
+  const padB = 28;
+  const innerW = W - padL - padR;
+  const innerH = height - padT - padB;
+
+  const allValues = series.flatMap((s) => s.values);
+  const maxV = Math.max(1, ...allValues);
+  const minV = Math.min(0, ...allValues);
+  const range = maxV - minV || 1;
+
+  const n = labels.length;
+  const stepX = n > 1 ? innerW / (n - 1) : innerW;
+
+  function ySvg(v: number) {
+    return padT + innerH - ((v - minV) / range) * innerH;
+  }
+  function xSvg(i: number) {
+    return padL + i * stepX;
+  }
+
+  // 4 horizontal gridlines
+  const gridYs = [0, 0.25, 0.5, 0.75, 1].map((t) => minV + t * range);
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${height}`}
+      width="100%"
+      preserveAspectRatio="xMidYMid meet"
+      className="block"
+      aria-hidden
+    >
+      {/* gridlines + y labels */}
+      {gridYs.map((v, i) => (
+        <g key={i}>
+          <line
+            x1={padL}
+            x2={W - padR}
+            y1={ySvg(v)}
+            y2={ySvg(v)}
+            stroke="var(--color-line)"
+            strokeDasharray={i === 0 ? undefined : "3 4"}
+          />
+          <text
+            x={padL - 6}
+            y={ySvg(v) + 3}
+            textAnchor="end"
+            fontSize="9"
+            fill="var(--color-muted)"
+          >
+            {formatY(v)}
+          </text>
+        </g>
+      ))}
+
+      {/* x axis labels (show ~6 evenly spaced) */}
+      {labels.map((lbl, i) => {
+        const stride = Math.max(1, Math.ceil(n / 7));
+        if (i % stride !== 0 && i !== n - 1) return null;
+        return (
+          <text
+            key={i}
+            x={xSvg(i)}
+            y={height - padB + 14}
+            textAnchor="middle"
+            fontSize="9"
+            fill="var(--color-muted)"
+          >
+            {lbl}
+          </text>
+        );
+      })}
+
+      {/* series */}
+      {series.map((s) => {
+        const d = s.values
+          .map((v, i) => `${i === 0 ? "M" : "L"}${xSvg(i)} ${ySvg(v)}`)
+          .join(" ");
+        const area = `${d} L${xSvg(s.values.length - 1)} ${ySvg(minV)} L${xSvg(0)} ${ySvg(minV)} Z`;
+        const isDashed = s.dashed;
+        return (
+          <g key={s.label}>
+            {!isDashed && (
+              <path d={area} fill={s.color} opacity={0.12} />
+            )}
+            <path
+              d={d}
+              fill="none"
+              stroke={s.color}
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={isDashed ? "5 5" : undefined}
+            />
+            {s.values.map((v, i) => (
+              <circle
+                key={i}
+                cx={xSvg(i)}
+                cy={ySvg(v)}
+                r="3"
+                fill="#fff"
+                stroke={s.color}
+                strokeWidth="1.5"
+              />
+            ))}
+          </g>
+        );
+      })}
+
+      {/* legend */}
+      <g>
+        {series.map((s, i) => (
+          <g key={s.label} transform={`translate(${padL + i * 130} ${padT - 4})`}>
+            <rect width="14" height="3" y="3" rx="1.5" fill={s.color} />
+            <text x="20" y="8" fontSize="10" fill="var(--color-muted)">
+              {s.label}
+            </text>
+          </g>
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+/**
+ * Heatmap of 7 weekdays × 24 hours.
+ * `data[day][hour]` = numeric value (e.g. revenue or order count).
+ */
+export function Heatmap({
+  data,
+  formatCell = (v) => `${v}`,
+  emptyHint = "No data yet",
+}: {
+  data: number[][]; // 7 × 24
+  formatCell?: (v: number) => string;
+  emptyHint?: string;
+}) {
+  const flat = data.flat();
+  const max = Math.max(0, ...flat);
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  if (max === 0) {
+    return (
+      <div className="grid place-items-center py-10 text-center text-sm text-[var(--color-muted)]">
+        <i className="fa-solid fa-clock text-3xl text-[var(--color-primary-200)]" />
+        <p className="mt-2">{emptyHint}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="border-separate border-spacing-1 text-[10px]">
+        <thead>
+          <tr>
+            <th className="w-10" />
+            {Array.from({ length: 24 }, (_, h) => (
+              <th
+                key={h}
+                className="text-center font-normal text-[var(--color-muted)]"
+              >
+                {h % 3 === 0 ? `${h}` : ""}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {days.map((d, di) => (
+            <tr key={d}>
+              <th className="pr-2 text-right text-[var(--color-muted)] font-medium">
+                {d}
+              </th>
+              {Array.from({ length: 24 }, (_, h) => {
+                const v = data[di]?.[h] ?? 0;
+                const t = max > 0 ? v / max : 0;
+                const bg = `rgba(30, 57, 50, ${0.05 + t * 0.85})`;
+                return (
+                  <td
+                    key={h}
+                    className="h-6 w-6 rounded-md text-center align-middle transition-transform hover:scale-110"
+                    style={{
+                      background: bg,
+                      color: t > 0.55 ? "#fff" : "var(--color-primary)",
+                    }}
+                    title={`${d} ${h}:00 — ${formatCell(v)}`}
+                  >
+                    {v > 0 ? "·" : ""}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// (Existing chart components below)
+
+
 export function Sparkline({
   values,
   width = 100,
