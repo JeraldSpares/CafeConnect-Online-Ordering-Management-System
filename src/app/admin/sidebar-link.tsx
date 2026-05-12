@@ -18,7 +18,7 @@ export function SidebarLink({
   return (
     <Link
       href={href}
-      className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all ${
+      className={`group flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
         active
           ? "bg-[var(--color-primary)] text-white shadow-md"
           : "text-[var(--color-text)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)]"

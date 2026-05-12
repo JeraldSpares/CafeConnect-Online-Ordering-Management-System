@@ -41,7 +41,7 @@ export function AdminShell({
       {/* Desktop sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--color-line)] bg-white shadow-sm lg:flex">
         <SidebarBrand />
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="space-y-0.5 px-3 pb-2 pt-3">
           {navLinks.map((link) => (
             <SidebarLink
               key={link.href}
@@ -71,7 +71,7 @@ export function AdminShell({
           }`}
         >
           <SidebarBrand onClose={() => setOpen(false)} />
-          <nav className="flex-1 space-y-1 px-3 py-4">
+          <nav className="space-y-0.5 px-3 pb-2 pt-3">
             {navLinks.map((link) => (
               <SidebarLink
                 key={link.href}
@@ -145,8 +145,8 @@ function SidebarBrand({ onClose }: { onClose?: () => void }) {
 
 function SidebarUserCard({ user }: { user: { name: string; role: string } }) {
   return (
-    <div className="border-t border-[var(--color-line)] p-4">
-      <div className="rounded-xl bg-[var(--color-primary-50)] p-3">
+    <div className="mx-3 mt-2 mb-3 rounded-xl border border-[var(--color-line)] bg-[var(--color-primary-50)] p-3">
+      <div>
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--color-primary)] text-white">
             <i className="fa-solid fa-user" />
