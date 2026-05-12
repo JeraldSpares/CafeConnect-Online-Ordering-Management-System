@@ -38,8 +38,8 @@ export function AdminShell({
 
   return (
     <div className="flex min-h-screen flex-1 bg-[var(--color-bg)]">
-      {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-[var(--color-line)] bg-white shadow-sm lg:flex">
+      {/* Desktop sidebar — sticky to viewport so it stays fixed while content scrolls */}
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start border-r border-[var(--color-line)] bg-white shadow-sm lg:flex">
         <SidebarBrand />
         <nav className="flex-1 space-y-0.5 px-3 pb-4 pt-3">
           {navLinks.map((link) => (
