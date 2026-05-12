@@ -11,13 +11,13 @@ import {
 export const dynamic = "force-dynamic";
 
 const STATUS_TABS: { key: string; label: string; icon: string }[] = [
+  { key: "all",        label: "All",        icon: "fa-layer-group" },
   { key: "active",     label: "Active",     icon: "fa-fire" },
   { key: "pending",    label: "Pending",    icon: "fa-hourglass-start" },
   { key: "preparing",  label: "Preparing",  icon: "fa-mug-hot" },
   { key: "ready",      label: "Ready",      icon: "fa-bell" },
   { key: "completed",  label: "Completed",  icon: "fa-circle-check" },
   { key: "cancelled",  label: "Cancelled",  icon: "fa-circle-xmark" },
-  { key: "all",        label: "All",        icon: "fa-layer-group" },
 ];
 
 const STATUS_COLOR: Record<string, string> = {
@@ -28,7 +28,25 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: "bg-[var(--color-danger-bg)] text-[var(--color-danger)]",
 };
 
+const KANBAN_COLUMNS: { key: string; label: string; icon: string; tint: string }[] = [
+  { key: "pending",    label: "Pending",    icon: "fa-hourglass-start", tint: "border-t-[var(--color-accent)]" },
+  { key: "preparing",  label: "Preparing",  icon: "fa-mug-hot",         tint: "border-t-blue-500" },
+  { key: "ready",      label: "Ready",      icon: "fa-bell",            tint: "border-t-[var(--color-success)]" },
+  { key: "completed",  label: "Completed",  icon: "fa-circle-check",    tint: "border-t-[var(--color-primary)]" },
+  { key: "cancelled",  label: "Cancelled",  icon: "fa-circle-xmark",    tint: "border-t-[var(--color-danger)]" },
+];
+
 const SORT_KEYS = ["created_at", "total", "status", "order_number"] as const;
+
+type OrderRow = {
+  id: string;
+  order_number: string;
+  status: string;
+  order_type: string;
+  total: number;
+  created_at: string;
+  customers: { full_name: string } | { full_name: string }[] | null;
+};
 
 export default async function OrdersPage({
   searchParams,
@@ -41,10 +59,37 @@ export default async function OrdersPage({
     dir: "desc",
     perPage: 15,
   });
-  const filter =
-    typeof sp.status === "string" ? sp.status : "active";
+  const filter = typeof sp.status === "string" ? sp.status : "all";
+  const view = sp.view === "kanban" ? "kanban" : "list";
 
   const supabase = await createClient();
+
+  if (view === "kanban") {
+    // Fetch up to 200 most-recent orders; group client-side into status columns.
+    let query = supabase
+      .from("orders")
+      .select(
+        "id, order_number, status, order_type, total, created_at, customers ( full_name )",
+      )
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (q) query = query.ilike("order_number", `%${q}%`);
+    const { data: orders } = await query;
+    return renderShell({
+      raw,
+      q,
+      filter,
+      view,
+      content: (
+        <KanbanBoard
+          orders={(orders ?? []) as OrderRow[]}
+          query={q}
+        />
+      ),
+    });
+  }
+
+  // -------- list view --------
   let query = supabase
     .from("orders")
     .select(
@@ -59,87 +104,17 @@ export default async function OrdersPage({
   } else if (filter !== "all") {
     query = query.eq("status", filter);
   }
-
-  if (q) {
-    query = query.ilike("order_number", `%${q}%`);
-  }
+  if (q) query = query.ilike("order_number", `%${q}%`);
 
   const { data: orders, count } = await query;
   const total = count ?? 0;
 
-  return (
-    <div className="space-y-6 p-8 animate-fade-up">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
-            <i className="fa-solid fa-receipt" /> Order Queue
-          </p>
-          <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
-            Orders
-          </h1>
-          <p className="text-sm text-[var(--color-muted)]">
-            Manage incoming orders, update status, and confirm payment.
-          </p>
-        </div>
-        <RealtimeIndicator />
-      </header>
-
-      {/* Search + filters */}
-      <form
-        action="/admin/orders"
-        method="get"
-        className="cc-card flex flex-wrap items-center gap-2 p-4"
-      >
-        <div className="relative min-w-48 flex-1">
-          <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
-          <input
-            name="q"
-            defaultValue={q}
-            placeholder="Search order number (e.g. 20260512)…"
-            className="cc-input !pl-10"
-          />
-        </div>
-        {filter !== "active" && filter !== "all" && (
-          <input type="hidden" name="status" value={filter} />
-        )}
-        <button type="submit" className="btn-primary">
-          <i className="fa-solid fa-magnifying-glass" /> Search
-        </button>
-        {q && (
-          <a
-            href={`/admin/orders${filter !== "active" ? `?status=${filter}` : ""}`}
-            className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-muted)] hover:bg-[var(--color-primary-50)]"
-          >
-            <i className="fa-solid fa-xmark" /> Clear
-          </a>
-        )}
-      </form>
-
-      {/* Status filter pills */}
-      <nav className="no-scrollbar -mx-2 flex gap-2 overflow-x-auto px-2">
-        {STATUS_TABS.map((t) => {
-          const active = filter === t.key;
-          const params = new URLSearchParams();
-          if (q) params.set("q", q);
-          if (t.key !== "active") params.set("status", t.key);
-          const qs = params.toString();
-          return (
-            <Link
-              key={t.key}
-              href={`/admin/orders${qs ? `?${qs}` : ""}`}
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold transition-all ${
-                active
-                  ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-md"
-                  : "border-[var(--color-line)] bg-white text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
-              }`}
-            >
-              <i className={`fa-solid ${t.icon}`} />
-              {t.label}
-            </Link>
-          );
-        })}
-      </nav>
-
+  return renderShell({
+    raw,
+    q,
+    filter,
+    view,
+    content: (
       <section className="cc-card overflow-hidden">
         {orders && orders.length > 0 ? (
           <>
@@ -189,7 +164,7 @@ export default async function OrdersPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((o) => {
+                  {(orders as OrderRow[]).map((o) => {
                     const customer = Array.isArray(o.customers)
                       ? o.customers[0]
                       : o.customers;
@@ -249,13 +224,252 @@ export default async function OrdersPage({
           <div className="px-6 py-12 text-center">
             <i className="fa-solid fa-inbox text-4xl text-[var(--color-primary-200)]" />
             <p className="mt-2 text-sm text-[var(--color-muted)]">
-              {q
-                ? `No orders match "${q}".`
-                : "No orders in this view."}
+              {q ? `No orders match "${q}".` : "No orders in this view."}
             </p>
           </div>
         )}
       </section>
+    ),
+  });
+}
+
+function renderShell({
+  raw,
+  q,
+  filter,
+  view,
+  content,
+}: {
+  raw: Record<string, string | undefined>;
+  q: string;
+  filter: string;
+  view: "list" | "kanban";
+  content: React.ReactNode;
+}) {
+  const buildHref = (overrides: Record<string, string | null>) => {
+    const params = new URLSearchParams();
+    Object.entries(raw).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") params.set(k, v);
+    });
+    Object.entries(overrides).forEach(([k, v]) => {
+      if (v === null) params.delete(k);
+      else params.set(k, v);
+    });
+    // The list-view default is `status=all` and `view=list` — strip them for clean URLs.
+    if (params.get("status") === "all") params.delete("status");
+    if (params.get("view") === "list") params.delete("view");
+    params.delete("page");
+    const qs = params.toString();
+    return `/admin/orders${qs ? `?${qs}` : ""}`;
+  };
+
+  return (
+    <div className="space-y-6 p-8 animate-fade-up">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <i className="fa-solid fa-receipt" /> Order Queue
+          </p>
+          <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
+            Orders
+          </h1>
+          <p className="text-sm text-[var(--color-muted)]">
+            Manage incoming orders, update status, and confirm payment.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* View toggle */}
+          <div className="inline-flex overflow-hidden rounded-full border border-[var(--color-line)] bg-white">
+            <Link
+              href={buildHref({ view: "list" })}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                view === "list"
+                  ? "bg-[var(--color-primary)] text-white"
+                  : "text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+              }`}
+            >
+              <i className="fa-solid fa-list" /> List
+            </Link>
+            <Link
+              href={buildHref({ view: "kanban" })}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-colors ${
+                view === "kanban"
+                  ? "bg-[var(--color-primary)] text-white"
+                  : "text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+              }`}
+            >
+              <i className="fa-solid fa-columns" /> Kanban
+            </Link>
+          </div>
+          <RealtimeIndicator />
+        </div>
+      </header>
+
+      {/* Search */}
+      <form
+        action="/admin/orders"
+        method="get"
+        className="cc-card flex flex-wrap items-center gap-2 p-4"
+      >
+        <div className="relative min-w-48 flex-1">
+          <i className="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-muted)]" />
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search order number (e.g. 20260512)…"
+            className="cc-input !pl-10"
+          />
+        </div>
+        {filter !== "all" && (
+          <input type="hidden" name="status" value={filter} />
+        )}
+        {view !== "list" && (
+          <input type="hidden" name="view" value={view} />
+        )}
+        <button type="submit" className="btn-primary">
+          <i className="fa-solid fa-magnifying-glass" /> Search
+        </button>
+        {q && (
+          <Link
+            href={buildHref({ q: null })}
+            className="rounded-full border border-[var(--color-line)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-muted)] hover:bg-[var(--color-primary-50)]"
+          >
+            <i className="fa-solid fa-xmark" /> Clear
+          </Link>
+        )}
+      </form>
+
+      {/* Status filter pills — list view only */}
+      {view === "list" && (
+        <nav className="no-scrollbar -mx-2 flex gap-2 overflow-x-auto px-2">
+          {STATUS_TABS.map((t) => {
+            const active = filter === t.key;
+            return (
+              <Link
+                key={t.key}
+                href={buildHref({
+                  status: t.key === "all" ? null : t.key,
+                })}
+                className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-semibold transition-all ${
+                  active
+                    ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-md"
+                    : "border-[var(--color-line)] bg-white text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                }`}
+              >
+                <i className={`fa-solid ${t.icon}`} />
+                {t.label}
+              </Link>
+            );
+          })}
+        </nav>
+      )}
+
+      {content}
     </div>
+  );
+}
+
+function KanbanBoard({
+  orders,
+  query,
+}: {
+  orders: OrderRow[];
+  query: string;
+}) {
+  // Bucket by status
+  const buckets = new Map<string, OrderRow[]>();
+  for (const o of orders) {
+    const arr = buckets.get(o.status) ?? [];
+    arr.push(o);
+    buckets.set(o.status, arr);
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="cc-card px-6 py-16 text-center">
+        <i className="fa-solid fa-inbox text-4xl text-[var(--color-primary-200)]" />
+        <p className="mt-2 text-sm text-[var(--color-muted)]">
+          {query
+            ? `No orders match "${query}".`
+            : "No orders yet — they'll appear here as customers place them."}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {KANBAN_COLUMNS.map((col) => {
+        const items = buckets.get(col.key) ?? [];
+        return (
+          <section
+            key={col.key}
+            className={`flex flex-col rounded-2xl border border-t-4 ${col.tint} border-[var(--color-line)] bg-white shadow-sm`}
+          >
+            <header className="flex items-center justify-between px-4 py-3">
+              <h2 className="font-display flex items-center gap-2 text-sm font-bold text-[var(--color-primary)]">
+                <i className={`fa-solid ${col.icon}`} />
+                {col.label}
+              </h2>
+              <span className="rounded-full bg-[var(--color-primary-50)] px-2 py-0.5 text-xs font-semibold text-[var(--color-primary)]">
+                {items.length}
+              </span>
+            </header>
+            <div className="flex-1 space-y-2 px-3 pb-3">
+              {items.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-[var(--color-line)] py-6 text-center text-xs text-[var(--color-muted)]">
+                  Empty
+                </p>
+              ) : (
+                items.map((o) => (
+                  <KanbanCard key={o.id} order={o} status={col.key} />
+                ))
+              )}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function KanbanCard({ order, status }: { order: OrderRow; status: string }) {
+  const customer = Array.isArray(order.customers)
+    ? order.customers[0]
+    : order.customers;
+  return (
+    <Link
+      href={`/admin/orders/${order.id}`}
+      className="block rounded-xl border border-[var(--color-line)] bg-white p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--color-primary-200)] hover:shadow-md"
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="truncate font-mono text-xs font-semibold text-[var(--color-primary)]">
+          {order.order_number}
+        </p>
+        <span
+          className={`chip text-[9px] ${STATUS_COLOR[status] ?? "bg-zinc-100"}`}
+        >
+          {status}
+        </span>
+      </div>
+      <p className="mt-1 truncate text-sm font-medium text-[var(--color-text)]">
+        <i className="fa-solid fa-user mr-1 text-[var(--color-muted)]" />
+        {customer?.full_name ?? "Walk-in"}
+      </p>
+      <div className="mt-2 flex items-center justify-between text-xs text-[var(--color-muted)]">
+        <span>
+          <i
+            className={`fa-solid ${order.order_type === "dine_in" ? "fa-chair" : "fa-bag-shopping"} mr-1`}
+          />
+          {order.order_type === "dine_in" ? "Dine-in" : "Takeaway"}
+        </span>
+        <span className="font-display font-bold text-[var(--color-primary)]">
+          {peso.format(Number(order.total))}
+        </span>
+      </div>
+      <p className="mt-1.5 text-[10px] text-[var(--color-muted)]">
+        {formatDateTime(order.created_at)}
+      </p>
+    </Link>
   );
 }
