@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { peso, formatDateTime } from "@/lib/format";
+import { RealtimeIndicator } from "./realtime-indicator";
 
 export const dynamic = "force-dynamic";
 
@@ -48,16 +49,19 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-6 p-8 animate-fade-up">
-      <header>
-        <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
-          <i className="fa-solid fa-receipt" /> Order Queue
-        </p>
-        <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
-          Orders
-        </h1>
-        <p className="text-sm text-[var(--color-muted)]">
-          Manage incoming orders, update status, and confirm payment.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <i className="fa-solid fa-receipt" /> Order Queue
+          </p>
+          <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
+            Orders
+          </h1>
+          <p className="text-sm text-[var(--color-muted)]">
+            Manage incoming orders, update status, and confirm payment.
+          </p>
+        </div>
+        <RealtimeIndicator />
       </header>
 
       <nav className="no-scrollbar -mx-2 flex gap-2 overflow-x-auto px-2">

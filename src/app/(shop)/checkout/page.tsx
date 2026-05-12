@@ -4,12 +4,14 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
+import { useToast } from "@/lib/toast";
 import { peso } from "@/lib/format";
 import { placeOrderAction } from "./actions";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { lines, subtotal, clear } = useCart();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -55,9 +57,11 @@ export default function CheckoutPage() {
       });
       if (res.error) {
         setError(res.error);
+        toast.error(res.error);
         return;
       }
       clear();
+      toast.success(`Order ${res.orderNumber} placed! See you soon.`);
       router.push(`/order/${res.orderNumber}`);
     });
   }

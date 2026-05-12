@@ -227,3 +227,44 @@ html, body {
 /* Custom scrollbar in horizontal category tabs */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
+
+/* Skeleton shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary-50) 0%,
+    var(--color-line) 50%,
+    var(--color-primary-50) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+  border-radius: 8px;
+}
+
+/* Section divider with brand mark */
+.cc-divider {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  color: var(--color-muted);
+}
+.cc-divider::before,
+.cc-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-line);
+}
+
+/* Focus ring helper */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(30, 57, 50, 0.18);
+}
+
+/* Subtle background pattern */
+.cc-bg-grain {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(30, 57, 50, 0.06) 1px, transparent 0);
+  background-size: 24px 24px;
+}

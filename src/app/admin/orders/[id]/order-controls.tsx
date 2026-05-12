@@ -6,6 +6,7 @@ import {
   cancelOrder,
   recordPayment,
 } from "../actions";
+import { useToast } from "@/lib/toast";
 
 type Status = "pending" | "preparing" | "ready" | "completed" | "cancelled";
 
@@ -42,6 +43,7 @@ export function OrderActions({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const next = NEXT_LABEL[status];
   const canCancel = ["pending", "preparing", "ready"].includes(status);
@@ -61,7 +63,12 @@ export function OrderActions({
               setError(null);
               startTransition(async () => {
                 const res = await advanceOrderStatus(orderId, status);
-                if (res?.error) setError(res.error);
+                if (res?.error) {
+                  setError(res.error);
+                  toast.error(res.error);
+                } else {
+                  toast.success("Order status updated.");
+                }
               });
             }}
             className="btn-primary !py-1.5 !px-4"
@@ -82,7 +89,12 @@ export function OrderActions({
               setError(null);
               startTransition(async () => {
                 const res = await cancelOrder(orderId);
-                if (res?.error) setError(res.error);
+                if (res?.error) {
+                  setError(res.error);
+                  toast.error(res.error);
+                } else {
+                  toast.success("Order cancelled.");
+                }
               });
             }}
             className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-danger)] px-3 py-1.5 text-sm font-semibold text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger-bg)]"
@@ -109,6 +121,7 @@ export function PaymentForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   return (
     <form
@@ -116,7 +129,12 @@ export function PaymentForm({
         setError(null);
         startTransition(async () => {
           const res = await recordPayment(orderId, formData);
-          if (res?.error) setError(res.error);
+          if (res?.error) {
+            setError(res.error);
+            toast.error(res.error);
+          } else {
+            toast.success("Payment recorded.");
+          }
         });
       }}
       className="mt-4 space-y-2 border-t border-[var(--color-line)] pt-3"

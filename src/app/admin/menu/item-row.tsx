@@ -6,6 +6,7 @@ import {
   toggleMenuItemAvailability,
 } from "./actions";
 import { peso } from "@/lib/format";
+import { useToast } from "@/lib/toast";
 
 type Props = {
   id: string;
@@ -17,6 +18,7 @@ type Props = {
 
 export function ItemRow({ id, name, price, isAvailable, description }: Props) {
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
 
   return (
     <tr className="border-t border-[var(--color-line)] transition-colors hover:bg-[var(--color-primary-50)]/40">
@@ -50,7 +52,12 @@ export function ItemRow({ id, name, price, isAvailable, description }: Props) {
             disabled={pending}
             onClick={() =>
               startTransition(async () => {
-                await toggleMenuItemAvailability(id, !isAvailable);
+                const res = await toggleMenuItemAvailability(id, !isAvailable);
+                if (res?.error) toast.error(res.error);
+                else
+                  toast.success(
+                    `${name} is now ${!isAvailable ? "available" : "hidden"}.`,
+                  );
               })
             }
             className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-50)] disabled:opacity-60"
@@ -65,7 +72,9 @@ export function ItemRow({ id, name, price, isAvailable, description }: Props) {
             onClick={() => {
               if (!confirm(`Delete "${name}"?`)) return;
               startTransition(async () => {
-                await deleteMenuItem(id);
+                const res = await deleteMenuItem(id);
+                if (res?.error) toast.error(res.error);
+                else toast.success(`${name} deleted.`);
               });
             }}
             className="inline-flex items-center gap-1 rounded-full border border-[var(--color-danger)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-danger)] transition-colors hover:bg-[var(--color-danger-bg)] disabled:opacity-60"

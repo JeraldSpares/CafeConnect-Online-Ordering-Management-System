@@ -47,12 +47,21 @@ export default async function OrderDetailPage({
 
   return (
     <div className="space-y-6 p-8 animate-fade-up">
-      <Link
-        href="/admin/orders"
-        className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] hover:underline"
-      >
-        <i className="fa-solid fa-arrow-left" /> Back to orders
-      </Link>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link
+          href="/admin/orders"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--color-primary)] hover:underline"
+        >
+          <i className="fa-solid fa-arrow-left" /> Back to orders
+        </Link>
+        <Link
+          href={`/admin/orders/${id}/receipt`}
+          target="_blank"
+          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+        >
+          <i className="fa-solid fa-print" /> Print receipt
+        </Link>
+      </div>
 
       <header className="cc-card flex flex-wrap items-end justify-between gap-3 p-6">
         <div>

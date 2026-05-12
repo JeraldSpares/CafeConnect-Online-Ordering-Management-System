@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { recordMovement } from "./actions";
+import { useToast } from "@/lib/toast";
 
 export function MovementForm({
   itemId,
@@ -12,6 +13,7 @@ export function MovementForm({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   return (
     <form
@@ -19,11 +21,15 @@ export function MovementForm({
         setError(null);
         startTransition(async () => {
           const res = await recordMovement(itemId, formData);
-          if (res?.error) setError(res.error);
-          else
+          if (res?.error) {
+            setError(res.error);
+            toast.error(res.error);
+          } else {
+            toast.success("Stock movement recorded.");
             (
               document.getElementById(`mv-${itemId}`) as HTMLFormElement
             )?.reset();
+          }
         });
       }}
       id={`mv-${itemId}`}
