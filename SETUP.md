@@ -37,6 +37,12 @@ EMAIL_FROM=CafeConnect <onboarding@resend.dev>
 
 # Where new-order notifications are sent (typically the café owner).
 ADMIN_EMAIL=owner@example.com
+
+# --- Optional: CafeBot chat support (Claude API) ---
+# Sign up free at https://console.anthropic.com → API Keys.
+# Uses claude-haiku-4-5 (Anthropic's fastest model — ~$1/1M input tokens).
+# Without this key the chat widget hides itself; nothing else breaks.
+ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxxxxxxxx
 ```
 
 If `RESEND_API_KEY` is missing or empty, emails are **skipped silently** (logged

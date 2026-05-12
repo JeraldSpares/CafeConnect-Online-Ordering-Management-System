@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CartProvider } from "@/lib/cart";
 import { CartIndicator } from "./cart-indicator";
 import { BrandLogo } from "@/components/brand-logo";
+import { ChatWidget } from "@/components/chat-widget";
 
 export default function ShopLayout({
   children,
@@ -43,6 +44,8 @@ export default function ShopLayout({
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
           {children}
         </main>
+
+        <ChatWidget />
 
         <footer className="border-t border-[var(--color-line)] bg-white/60">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5 text-xs text-[var(--color-muted)]">
