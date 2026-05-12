@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useCart } from "@/lib/cart";
 import { peso } from "@/lib/format";
 
@@ -18,6 +19,7 @@ type Item = {
   price: number;
   category_id: string | null;
   is_available: boolean;
+  image_url?: string | null;
 };
 
 // Pick an icon based on category or item name keywords
@@ -188,16 +190,27 @@ function ProductCard({
   onAdd: () => void;
 }) {
   const icon = iconFor(item.name);
+  const hasImage = !!item.image_url;
   return (
     <article className="cc-card cc-card-hover group flex flex-col overflow-hidden">
-      {/* Disc */}
-      <div className="relative h-44 bg-gradient-to-br from-[var(--color-primary-50)] to-[var(--color-accent-50)]">
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="grid h-28 w-28 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)] shadow-[0_18px_40px_-12px_rgba(20,39,31,0.5)] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
-            <i className={`fa-solid ${icon} text-5xl`} />
+      {/* Image or disc */}
+      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-[var(--color-primary-50)] to-[var(--color-accent-50)]">
+        {hasImage ? (
+          <Image
+            src={item.image_url!}
+            alt={item.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center">
+            <div className="grid h-28 w-28 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)] shadow-[0_18px_40px_-12px_rgba(20,39,31,0.5)] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">
+              <i className={`fa-solid ${icon} text-5xl`} />
+            </div>
           </div>
-        </div>
-        <span className="absolute right-3 top-3 chip bg-white/90 text-[var(--color-primary)] shadow-sm">
+        )}
+        <span className="absolute right-3 top-3 chip bg-white/90 text-[var(--color-primary)] shadow-sm backdrop-blur">
           <i className="fa-solid fa-fire-flame-curved text-[var(--color-accent)]" /> Fresh
         </span>
       </div>

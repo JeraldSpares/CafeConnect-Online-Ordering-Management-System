@@ -38,6 +38,7 @@ export async function createMenuItem(formData: FormData) {
 
   const categoryId = (formData.get("category_id") as string) || null;
   const description = (formData.get("description") as string) || null;
+  const imageUrl = ((formData.get("image_url") as string) || "").trim() || null;
 
   const supabase = await createClient();
   const { error } = await supabase.from("menu_items").insert({
@@ -45,6 +46,7 @@ export async function createMenuItem(formData: FormData) {
     price,
     category_id: categoryId,
     description,
+    image_url: imageUrl,
     is_available: true,
   });
 

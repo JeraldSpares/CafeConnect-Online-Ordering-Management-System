@@ -2,6 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import {
+  sendOrderCompletedToCustomer,
+  sendOrderReadyToCustomer,
+} from "@/lib/email";
 
 type Status = "pending" | "preparing" | "ready" | "completed" | "cancelled";
 
@@ -27,6 +31,14 @@ export async function advanceOrderStatus(orderId: string, current: Status) {
     .eq("id", orderId);
 
   if (error) return { error: error.message };
+
+  // Fire-and-forget customer notification on key transitions
+  if (next === "ready" || next === "completed") {
+    void notifyCustomerOnStatusChange(supabase, orderId, next).catch((e) =>
+      console.error("[status notif]", e),
+    );
+  }
+
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/dashboard");
@@ -48,10 +60,7 @@ export async function cancelOrder(orderId: string) {
   return { error: null };
 }
 
-export async function recordPayment(
-  orderId: string,
-  formData: FormData,
-) {
+export async function recordPayment(orderId: string, formData: FormData) {
   const method = String(formData.get("payment_method") ?? "");
   const amountRaw = String(formData.get("amount") ?? "");
   const reference = String(formData.get("reference_number") ?? "").trim();
@@ -98,4 +107,40 @@ export async function refundPayment(transactionId: string, orderId: string) {
   revalidatePath("/admin/dashboard");
   revalidatePath("/admin/reports");
   return { error: null };
+}
+
+async function notifyCustomerOnStatusChange(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orderId: string,
+  status: "ready" | "completed",
+) {
+  const { data: order } = await supabase
+    .from("orders")
+    .select(
+      "order_number, order_type, total, customers ( full_name, email )",
+    )
+    .eq("id", orderId)
+    .single();
+
+  if (!order) return;
+  const customer = Array.isArray(order.customers)
+    ? order.customers[0]
+    : order.customers;
+  if (!customer?.email) return;
+
+  if (status === "ready") {
+    await sendOrderReadyToCustomer({
+      orderNumber: order.order_number,
+      customerName: customer.full_name ?? "Customer",
+      customerEmail: customer.email,
+      orderType: order.order_type as "dine_in" | "takeaway",
+    });
+  } else {
+    await sendOrderCompletedToCustomer({
+      orderNumber: order.order_number,
+      customerName: customer.full_name ?? "Customer",
+      customerEmail: customer.email,
+      total: Number(order.total),
+    });
+  }
 }

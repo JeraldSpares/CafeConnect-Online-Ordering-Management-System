@@ -102,6 +102,30 @@ export function NewItemForm({ categories }: { categories: Category[] }) {
         />
       </div>
 
+      <div className="md:col-span-5">
+        <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+          <i className="fa-solid fa-image mr-1" /> Image URL (optional)
+        </label>
+        <input
+          name="image_url"
+          type="url"
+          className="cc-input mt-1 !py-2 text-sm"
+          placeholder="https://images.unsplash.com/…"
+        />
+        <p className="mt-1 text-xs text-[var(--color-muted)]">
+          Tip: search a coffee photo on{" "}
+          <a
+            href="https://unsplash.com/s/photos/coffee"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[var(--color-primary)]"
+          >
+            Unsplash
+          </a>{" "}
+          and paste the direct image link.
+        </p>
+      </div>
+
       {error && (
         <p className="md:col-span-5 rounded-md border-l-4 border-l-[var(--color-danger)] bg-[var(--color-danger-bg)] px-3 py-2 text-sm text-[var(--color-danger)]">
           <i className="fa-solid fa-triangle-exclamation mr-1" /> {error}

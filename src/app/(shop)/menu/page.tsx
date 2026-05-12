@@ -15,7 +15,7 @@ export default async function CustomerMenuPage() {
       .order("name"),
     supabase
       .from("menu_items")
-      .select("id, name, description, price, category_id, is_available")
+      .select("id, name, description, price, category_id, is_available, image_url")
       .eq("is_available", true)
       .order("name"),
   ]);
