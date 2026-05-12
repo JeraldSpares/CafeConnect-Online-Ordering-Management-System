@@ -17,14 +17,9 @@ export default function ShopLayout({
               href="/"
               className="flex items-center gap-3 text-[var(--color-primary)]"
             >
-              <BrandLogo size={40} priority />
-              <span>
-                <span className="block text-[9px] uppercase tracking-widest text-[var(--color-accent)]">
-                  Hebrews Kape
-                </span>
-                <span className="font-display block text-lg font-bold leading-tight tracking-tight">
-                  CafeConnect
-                </span>
+              <BrandLogo size={52} priority />
+              <span className="font-display text-lg font-bold tracking-tight">
+                CafeConnect
               </span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
@@ -52,7 +47,7 @@ export default function ShopLayout({
         <footer className="border-t border-[var(--color-line)] bg-white/60">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5 text-xs text-[var(--color-muted)]">
             <div className="flex items-center gap-2">
-              <BrandLogo size={20} ring={false} />
+              <BrandLogo size={28} />
               <span>© {new Date().getFullYear()} Hebrews Kape</span>
             </div>
             <span>

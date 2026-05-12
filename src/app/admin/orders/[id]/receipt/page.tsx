@@ -72,12 +72,9 @@ export default async function ReceiptPage({
         >
           <header className="text-center">
             <div className="mx-auto inline-block">
-              <BrandLogo size={56} ring />
+              <BrandLogo size={72} />
             </div>
-            <h1 className="mt-2 font-display text-xl font-bold text-[var(--color-primary)]">
-              Hebrews Kape
-            </h1>
-            <p className="text-[10px] uppercase tracking-widest text-[var(--color-muted)]">
+            <p className="mt-2 text-[10px] uppercase tracking-widest text-[var(--color-muted)]">
               Official Receipt · CafeConnect
             </p>
           </header>

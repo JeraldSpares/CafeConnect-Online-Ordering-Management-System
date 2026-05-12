@@ -1,30 +1,58 @@
 import Image from "next/image";
 
-type Shape = "circle" | "rounded";
-
+/**
+ * <BrandLogo />
+ *
+ * Renders the Hebrews Kape logo with NO visible white background.
+ *
+ * On light/cream backgrounds (default) the JPG's white pixels are knocked
+ * out via `mix-blend-mode: multiply`, leaving only the black circle, the
+ * "HEBREWS KAPE" wordmark, and the brown + green beans visible. The mark
+ * sits directly on the page without any container.
+ *
+ * On dark backgrounds the multiply trick can't preserve the black ink, so
+ * pass `onDark` and the logo is rendered inside a tiny soft "stamp" badge
+ * that keeps the mark legible without looking like a generic avatar.
+ */
 export function BrandLogo({
-  size = 40,
-  shape = "circle",
-  glow = false,
-  ring = true,
+  size = 48,
   className = "",
+  onDark = false,
   priority = false,
 }: {
   size?: number;
-  shape?: Shape;
-  glow?: boolean;
-  ring?: boolean;
   className?: string;
+  onDark?: boolean;
   priority?: boolean;
 }) {
-  const radius = shape === "circle" ? "rounded-full" : "rounded-2xl";
+  if (onDark) {
+    const pad = Math.round(size * 0.08);
+    return (
+      <span
+        className={`relative inline-block shrink-0 rounded-2xl bg-white/95 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.45)] backdrop-blur ${className}`}
+        style={{ width: size, height: size, padding: pad }}
+        aria-label="Hebrews Kape"
+      >
+        <span className="relative block h-full w-full">
+          <Image
+            src="/logo.jpg"
+            alt="Hebrews Kape"
+            fill
+            sizes={`${size}px`}
+            fetchPriority={priority ? "high" : "auto"}
+            className="object-contain"
+            style={{ mixBlendMode: "multiply" }}
+          />
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden bg-white ${radius} ${
-        ring ? "ring-2 ring-[var(--color-accent)]/45" : ""
-      } ${glow ? "shadow-[0_0_28px_rgba(199,152,98,0.55)]" : "shadow-sm"} ${className}`}
+      className={`relative inline-block shrink-0 ${className}`}
       style={{ width: size, height: size }}
-      aria-hidden
+      aria-label="Hebrews Kape"
     >
       <Image
         src="/logo.jpg"
@@ -32,47 +60,9 @@ export function BrandLogo({
         fill
         sizes={`${size}px`}
         fetchPriority={priority ? "high" : "auto"}
-        className="object-cover scale-[1.05]"
+        className="object-contain"
+        style={{ mixBlendMode: "multiply" }}
       />
-    </span>
-  );
-}
-
-/**
- * Logo + wordmark side-by-side. Use in headers/footers.
- */
-export function BrandLockup({
-  size = 40,
-  className = "",
-  variant = "default",
-  priority = false,
-}: {
-  size?: number;
-  className?: string;
-  variant?: "default" | "stacked";
-  priority?: boolean;
-}) {
-  if (variant === "stacked") {
-    return (
-      <span className={`inline-flex flex-col items-center gap-1 ${className}`}>
-        <BrandLogo size={size} glow priority={priority} />
-        <span className="font-display text-base font-bold tracking-tight text-[var(--color-primary)]">
-          Hebrews Kape
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <BrandLogo size={size} priority={priority} />
-      <span className="flex flex-col leading-tight">
-        <span className="text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
-          Hebrews Kape
-        </span>
-        <span className="font-display text-base font-bold tracking-tight text-[var(--color-primary)]">
-          CafeConnect
-        </span>
-      </span>
     </span>
   );
 }

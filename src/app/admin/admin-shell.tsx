@@ -96,7 +96,7 @@ export function AdminShell({
             <i className="fa-solid fa-bars" />
           </button>
           <Link href="/admin/dashboard" className="flex items-center gap-2">
-            <BrandLogo size={32} />
+            <BrandLogo size={40} />
             <span className="font-display font-bold text-[var(--color-primary)]">
               CafeConnect
             </span>
@@ -120,10 +120,10 @@ function SidebarBrand({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex items-center justify-between border-b border-[var(--color-line)] px-5 py-5">
       <Link href="/admin/dashboard" className="flex items-center gap-3">
-        <BrandLogo size={44} />
+        <BrandLogo size={56} />
         <span>
           <span className="block text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
-            Hebrews Kape
+            CafeConnect
           </span>
           <span className="font-display block text-base font-bold leading-tight text-[var(--color-primary)]">
             Admin Portal

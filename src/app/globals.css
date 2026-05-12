@@ -44,22 +44,22 @@
   --color-danger-bg:  var(--color-danger-bg);
   --color-success:    var(--color-success);
   --color-success-bg: var(--color-success-bg);
-
-  --font-sans:    var(--font-geist-sans);
-  --font-serif:   var(--font-playfair);
-  --font-mono:    var(--font-geist-mono);
 }
 
 html, body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.005em;
 }
 
 .font-display {
-  font-family: var(--font-playfair), Georgia, serif;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display), "Bricolage Grotesque", system-ui, sans-serif;
+  font-feature-settings: "ss02";
+  letter-spacing: -0.025em;
+  font-weight: 700;
 }
 
 /* ---------- Animations ---------- */

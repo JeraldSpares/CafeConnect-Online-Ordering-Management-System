@@ -105,14 +105,9 @@ export default function HomePage() {
           href="/"
           className="flex items-center gap-3 text-[var(--color-primary)]"
         >
-          <BrandLogo size={44} glow priority />
-          <span>
-            <span className="block text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
-              Hebrews Kape
-            </span>
-            <span className="font-display block text-xl font-bold tracking-tight">
-              CafeConnect
-            </span>
+          <BrandLogo size={56} priority />
+          <span className="font-display text-xl font-bold tracking-tight">
+            CafeConnect
           </span>
         </Link>
         <nav className="flex items-center gap-2">
@@ -424,7 +419,7 @@ export default function HomePage() {
               }}
             />
             <div className="animate-float inline-block">
-              <BrandLogo size={88} glow shape="rounded" />
+              <BrandLogo size={96} onDark />
             </div>
             <h2 className="font-display mt-4 text-3xl font-bold sm:text-4xl">
               Ready for your daily cup?

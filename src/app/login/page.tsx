@@ -119,7 +119,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-sm cc-card p-8 animate-scale-in">
         <div className="text-center">
           <Link href="/" className="inline-block">
-            <BrandLogo size={72} glow priority />
+            <BrandLogo size={112} priority />
           </Link>
           <p className="mt-4 text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
             CafeConnect

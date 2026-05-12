@@ -9,7 +9,7 @@ export default function NotFound() {
 
       <div className="relative w-full max-w-md cc-card p-10 text-center animate-scale-in">
         <div className="mx-auto inline-block animate-float">
-          <BrandLogo size={88} glow shape="rounded" />
+          <BrandLogo size={120} />
         </div>
         <p className="mt-5 text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
           Error 404
