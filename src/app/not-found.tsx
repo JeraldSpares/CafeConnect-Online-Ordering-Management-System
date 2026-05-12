@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default function NotFound() {
   return (
@@ -7,8 +8,8 @@ export default function NotFound() {
       <div className="cc-bean animate-float" style={{ width: 240, height: 160, bottom: -50, right: -40, animationDelay: "1s" }} />
 
       <div className="relative w-full max-w-md cc-card p-10 text-center animate-scale-in">
-        <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)]">
-          <i className="fa-solid fa-mug-saucer animate-float text-3xl" />
+        <div className="mx-auto inline-block animate-float">
+          <BrandLogo size={88} glow shape="rounded" />
         </div>
         <p className="mt-5 text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
           Error 404

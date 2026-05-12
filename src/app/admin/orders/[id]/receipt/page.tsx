@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { peso, formatDateTime } from "@/lib/format";
 import { PrintTrigger } from "./print-trigger";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -70,11 +71,11 @@ export default async function ReceiptPage({
           style={{ fontFamily: "ui-monospace, 'Cascadia Mono', Menlo, monospace" }}
         >
           <header className="text-center">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)]">
-              <i className="fa-solid fa-mug-saucer text-xl" />
+            <div className="mx-auto inline-block">
+              <BrandLogo size={56} ring />
             </div>
             <h1 className="mt-2 font-display text-xl font-bold text-[var(--color-primary)]">
-              Hebrew&apos;s Cafe
+              Hebrews Kape
             </h1>
             <p className="text-[10px] uppercase tracking-widest text-[var(--color-muted)]">
               Official Receipt · CafeConnect

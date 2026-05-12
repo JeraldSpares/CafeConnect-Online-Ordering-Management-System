@@ -4,6 +4,7 @@ import { Reveal } from "@/components/reveal";
 import { ScrollProgress } from "@/components/scroll-progress";
 import { CoffeeDrip } from "@/components/coffee-drip";
 import { ParallaxImage } from "@/components/parallax-image";
+import { BrandLogo } from "@/components/brand-logo";
 
 const HERO_IMG =
   "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1400&auto=format&fit=crop&q=80";
@@ -102,13 +103,16 @@ export default function HomePage() {
       <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
         <Link
           href="/"
-          className="flex items-center gap-2 text-[var(--color-primary)]"
+          className="flex items-center gap-3 text-[var(--color-primary)]"
         >
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-white">
-            <i className="fa-solid fa-mug-saucer" />
-          </span>
-          <span className="font-display text-xl font-bold tracking-tight">
-            Hebrew&apos;s Cafe
+          <BrandLogo size={44} glow priority />
+          <span>
+            <span className="block text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
+              Hebrews Kape
+            </span>
+            <span className="font-display block text-xl font-bold tracking-tight">
+              CafeConnect
+            </span>
           </span>
         </Link>
         <nav className="flex items-center gap-2">
@@ -419,8 +423,10 @@ export default function HomePage() {
                 opacity: 0.15,
               }}
             />
-            <i className="animate-float fa-solid fa-mug-saucer text-4xl text-[var(--color-accent)]" />
-            <h2 className="font-display mt-3 text-3xl font-bold sm:text-4xl">
+            <div className="animate-float inline-block">
+              <BrandLogo size={88} glow shape="rounded" />
+            </div>
+            <h2 className="font-display mt-4 text-3xl font-bold sm:text-4xl">
               Ready for your daily cup?
             </h2>
             <p className="mt-2 text-white/80">

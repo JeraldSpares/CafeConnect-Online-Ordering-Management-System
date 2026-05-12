@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CartProvider } from "@/lib/cart";
 import { CartIndicator } from "./cart-indicator";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default function ShopLayout({
   children,
@@ -12,12 +13,18 @@ export default function ShopLayout({
       <div className="flex min-h-screen flex-1 flex-col">
         <header className="sticky top-0 z-40 border-b border-[var(--color-line)] bg-white/85 backdrop-blur-md">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-            <Link href="/" className="flex items-center gap-2 text-[var(--color-primary)]">
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--color-primary)] text-white transition-transform hover:rotate-6">
-                <i className="fa-solid fa-mug-saucer" />
-              </span>
-              <span className="font-display text-lg font-bold tracking-tight">
-                Hebrew&apos;s Cafe
+            <Link
+              href="/"
+              className="flex items-center gap-3 text-[var(--color-primary)]"
+            >
+              <BrandLogo size={40} priority />
+              <span>
+                <span className="block text-[9px] uppercase tracking-widest text-[var(--color-accent)]">
+                  Hebrews Kape
+                </span>
+                <span className="font-display block text-lg font-bold leading-tight tracking-tight">
+                  CafeConnect
+                </span>
               </span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
@@ -45,8 +52,8 @@ export default function ShopLayout({
         <footer className="border-t border-[var(--color-line)] bg-white/60">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5 text-xs text-[var(--color-muted)]">
             <div className="flex items-center gap-2">
-              <i className="fa-solid fa-mug-saucer text-[var(--color-primary)]" />
-              <span>© {new Date().getFullYear()} Hebrew&apos;s Cafe</span>
+              <BrandLogo size={20} ring={false} />
+              <span>© {new Date().getFullYear()} Hebrews Kape</span>
             </div>
             <span>
               Powered by{" "}

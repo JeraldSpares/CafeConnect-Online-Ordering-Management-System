@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { BrandLogo } from "@/components/brand-logo";
 
 function LoginForm() {
   const router = useRouter();
@@ -117,20 +118,17 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-sm cc-card p-8 animate-scale-in">
         <div className="text-center">
-          <Link
-            href="/"
-            className="mx-auto inline-grid h-14 w-14 place-items-center rounded-full bg-[var(--color-primary)] text-white"
-          >
-            <i className="fa-solid fa-mug-saucer text-2xl" />
+          <Link href="/" className="inline-block">
+            <BrandLogo size={72} glow priority />
           </Link>
-          <p className="mt-3 text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
+          <p className="mt-4 text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
             CafeConnect
           </p>
           <h1 className="font-display text-2xl font-bold text-[var(--color-primary)]">
             Staff Sign In
           </h1>
           <p className="mt-1 text-sm text-[var(--color-muted)]">
-            Hebrew&apos;s Cafe admin portal
+            Hebrews Kape admin portal
           </p>
         </div>
 

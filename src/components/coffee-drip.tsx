@@ -7,12 +7,17 @@ import { useEffect, useState } from "react";
  * - A coffee-cup ornament fixed on the right side that "fills" as you scroll
  * - Streaming drip below it
  * - Floating beans that drift across the viewport, rotated by scrollY
+ *
+ * Rendered client-only after mount to avoid hydration mismatch from
+ * viewport-dependent transforms.
  */
 export function CoffeeDrip() {
+  const [mounted, setMounted] = useState(false);
   const [pct, setPct] = useState(0);
   const [y, setY] = useState(0);
 
   useEffect(() => {
+    setMounted(true);
     const onScroll = () => {
       const h = document.documentElement;
       const max = h.scrollHeight - h.clientHeight;
@@ -27,6 +32,8 @@ export function CoffeeDrip() {
       window.removeEventListener("resize", onScroll);
     };
   }, []);
+
+  if (!mounted) return null;
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[5] overflow-hidden">

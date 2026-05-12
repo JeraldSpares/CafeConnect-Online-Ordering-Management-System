@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { SidebarLink } from "./sidebar-link";
+import { BrandLogo } from "@/components/brand-logo";
 
 type NavLink = { href: string; label: string; icon: string };
 
@@ -95,9 +96,7 @@ export function AdminShell({
             <i className="fa-solid fa-bars" />
           </button>
           <Link href="/admin/dashboard" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)]">
-              <i className="fa-solid fa-mug-saucer text-sm" />
-            </span>
+            <BrandLogo size={32} />
             <span className="font-display font-bold text-[var(--color-primary)]">
               CafeConnect
             </span>
@@ -119,17 +118,15 @@ export function AdminShell({
 
 function SidebarBrand({ onClose }: { onClose?: () => void }) {
   return (
-    <div className="flex items-center justify-between border-b border-[var(--color-line)] px-6 py-5">
-      <Link href="/admin/dashboard" className="flex items-center gap-2">
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)]">
-          <i className="fa-solid fa-mug-saucer" />
-        </span>
+    <div className="flex items-center justify-between border-b border-[var(--color-line)] px-5 py-5">
+      <Link href="/admin/dashboard" className="flex items-center gap-3">
+        <BrandLogo size={44} />
         <span>
           <span className="block text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
-            CafeConnect
+            Hebrews Kape
           </span>
-          <span className="font-display block text-base font-bold text-[var(--color-primary)]">
-            Admin
+          <span className="font-display block text-base font-bold leading-tight text-[var(--color-primary)]">
+            Admin Portal
           </span>
         </span>
       </Link>
