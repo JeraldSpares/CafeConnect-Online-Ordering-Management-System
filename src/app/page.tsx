@@ -419,7 +419,7 @@ export default function HomePage() {
               }}
             />
             <div className="animate-float inline-block">
-              <BrandLogo size={96} onDark />
+              <BrandLogo size={96} />
             </div>
             <h2 className="font-display mt-4 text-3xl font-bold sm:text-4xl">
               Ready for your daily cup?
