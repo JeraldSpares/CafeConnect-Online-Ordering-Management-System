@@ -1,0 +1,310 @@
+              CafeConnect: Online Ordering Management System
+
+A Capstone Project Proposal Presented to College of Information Technology
+                                    PHINMA Araullo University
+
+                     In Partial Fulfillment of the Requirements for the 
+              Degree of Bachelor of Science in Information Technology
+
+                                             Submitted by:
+                                      Alfonso, Elrich Mikko F.
+                                        Elisterio, Mark Erin A.
+                                          TABLE OF CONTENTS
+1.0 CHAPTER 1.......................................................................................3
+1.1 Background of the study....................................................................3
+1.2 Statement of the Problem ..................................................................4
+1.3 Objective of the Study ......................................................................5
+1.4 Scope and limitation ........................................................................6
+1.5 Significance of the study ..................................................................6
+
+2.0 CHAPTER 2.....................................................................................10
+                            CHAPTER 1
+
+1.1Background of the Study
+
+Technology has become an essential part of the food and beverage industry,
+especially with the growing use of online ordering systems. These systems make it
+easier for customers to place orders and give businesses a more efficient way to
+manage their operations. Many coffee shops today use digital platforms that allow
+customers to order quickly and choose from different payment options. However,
+Herbrews Kape still relies on traditional ordering methods. This often results in
+slower service, limited reach to potential customers, and challenges in handling
+transactions. Without a digital system, it is also difficult for the business to properly
+track and analyze sales data. To solve these problems, this study proposes the
+development of an online ordering system for Herbrews Kape. The system will
+support both cash and online payments, while also providing automated sales
+tracking. This aims to improve overall service efficiency and help the business make
+better, data-driven background
+1.2Statement of the Problem
+    1.2.1 General Problem
+         Hebrew's Cafe currently relies on manual processes and separate systems in
+
+managing orders, inventory, customer records, and financial transactions. These
+practices result in inefficiencies, delays in service, inaccurate data recording, and
+difficulty in monitoring overall business operations. The absence of a centralized system
+limits the café's ability to deliver fast, reliable, and organized service to its customers.
+
+    1.2.2 Specific Problems
+          Order processing in the café is handled manually or through disconnected
+             systems, resulting in delays and inefficiencies.
+
+          Inventory tracking is not updated in real time, leading to stock shortages or
+             overstocking of items.
+
+          Customer records are not properly organized, making it difficult to track
+             preferences and improve customer service.
+
+          Financial transactions and reporting are done manually, increasing the risk of
+             errors and inaccuracies.
+
+          There is no centralized system that integrates sales, inventory, customer
+             management, and reporting functions.
+1.3Objectives of the Study
+    1.3.1 General Objective
+     The main objective of this study is to develop a centralized online ordering and
+    management system that streamlines café's operations, including sales, inventory,
+    customer management, and financial reporting.
+
+    1.3.2 Specific Objectives
+          Design and develop an online ordering system for faster and more accurate
+             order processing.
+          Implement a real-time inventory management feature to track stock levels.
+          Create a customer management module to store and manage customer data.
+
+          Develop an automated financial reporting system for accurate tracking of
+             sales and expenses.
+
+          Integrate all operational modules into a single, user-friendly platform.
+1.4Scope and Limitations
+    1.4.1 Scope of the Study
+          Online ordering system for customers
+          Sales and transaction management
+          Inventory tracking and monitoring
+          Customer record management
+          Financial reporting dashboard
+
+    1.4.2 Limitations of the Study
+          The system will only be implemented for a single café setup.
+          It requires stable internet connectivity for full functionality.
+          Payment integration may be limited (e.g., cash or selected digital payments
+             only).
+          The system will not include advanced analytics such as AI-based forecasting.
+          Mobile application support may not be included (web-based only).
+1.5 Significance of the Study
+
+     Café Owners ­ Helps improve business operations through automation and
+         centralized management.
+
+     Employees ­ Simplifies tasks such as order taking, inventory tracking, and
+         reporting.
+
+     Customers ­ Provides a faster and more convenient ordering experience.
+     Future Researchers ­ Serves as a reference for similar system development
+
+         studies.
+     Developers ­ Offers insights into building integrated management systems.
+
+1.6 Definition of Terms
+
+    1.6.1 Operational Definitions
+
+          Online Ordering System ­ A feature that allows customers to place orders
+             through a web interface.
+
+          Inventory Management ­ The process of tracking and managing stock levels
+             within the café.
+
+          Customer Records ­ Stored data containing customer information such as
+             name, orders, and preferences.
+
+          Financial Reporting ­ Automated generation of reports related to sales and
+             transactions.
+
+          Centralized System ­ A single platform where all café operations are
+             managed.
+1.6.2 Conceptual Definitions
+
+     Management System ­ A system designed to manage and organize
+         operations efficiently.
+
+     Automation ­ The use of technology to perform tasks with minimal human
+         intervention.
+
+     Database ­ A structured collection of data stored electronically.
+     User Interface (UI) ­ The part of the system that users interact with.
+     System Integration ­ The process of combining different subsystems into
+
+         one unified system.
+                              CHAPTER 2
+
+2.1 REVIEW OF RELATED LITERATURE
+
+Online Food Ordering Systems
+
+  Xu et al. (2024) examined the impact of mobile food ordering applications on
+
+restaurant performance and customer satisfaction. Their study found that digital
+
+ordering systems improve operational efficiency, provide faster service delivery, and
+
+increase customer convenience. These findings support the development of
+
+CafeConnect as a reliable and efficient online ordering management system for
+
+Hebrew's Cafe.
+
+Web-Based Café Management Systems
+
+  Verdian and Riki (2024) developed a web-based café management system and
+
+found that computerized systems improve transaction recording, reduce service delays,
+
+and enhance operational efficiency. Their findings emphasize the importance of
+
+integrating café operations into a single platform, which supports the development of
+
+CafeConnect.
+
+Online Restaurant Management Systems
+
+  Salakham and Talasee (2024) designed an online restaurant management
+
+system and discovered that digital platforms improve service quality, operational
+
+efficiency, and customer satisfaction. Their study supports the implementation of
+
+CafeConnect as an effective tool for streamlining café operations.
+
+Restaurant Management Information Systems
+
+  Friyani (2026) developed a web-based Restaurant Management Information
+
+System (RMIS) that integrated ordering, payment, and reporting processes. The study
+
+showed that centralized systems reduce manual errors and improve customer service,
+
+supporting the purpose of CafeConnect as an integrated management platform.
+Point of Sales Systems in Cafés
+
+       Elaine et al. (2024) implemented a web-based Point of Sales (POS) system for a
+
+café and found that automated ordering and inventory management improve operational
+
+efficiency and business organization. Their findings support the inventory and sales
+
+management features of CafeConnect.
+
+Web-Based Menu Ordering Systems
+
+       Nainggolan et al. (2025) developed a web-based menu ordering information
+
+system and concluded that digital ordering platforms speed up transaction processing
+
+and minimize manual recording errors. Their study highlights the value of automation,
+
+which aligns with the objectives of CafeConnect.
+
+Hybrid Ordering Systems
+
+       Cuento et al. (2025) studied hybrid ordering systems in restaurants and found
+
+that technology-based ordering significantly improves service speed and customer
+
+satisfaction. These findings support the implementation of online ordering features in
+
+CafeConnect.
+
+Inventory Management Systems
+
+       Furtos (2026) examined café inventory management systems and found that
+
+real-time inventory tracking reduces stock shortages, overstocking, and product
+
+wastage. The study supports the inventory monitoring capabilities of CafeConnect.
+
+Blockchain-Based Food Delivery Systems
+
+       Talukder et al. (2022) proposed a blockchain-supported food delivery system
+
+focused on secure transactions and customer satisfaction. Their findings showed that
+
+automated systems improve reliability and reduce delays, supporting the secure
+
+transaction features of CafeConnect.
+
+Online Ordering Systems for Takeaway Shops
+
+       Sikder and Anae (2010) investigated online ordering systems in takeaway shops
+
+and found that digital platforms improve customer convenience, transaction
+
+management, and operational efficiency. Their study reinforces the importance of
+
+implementing CafeConnect as a modern ordering management solution for Hebrew's
+
+Cafe.
+2.2 REVIEW OF RELATED STUDIES
+
+Web-Based Café Management System Study
+Verdian and Riki (2024) conducted a study on the development of a web-based café
+management system using the prototype development method. Their findings revealed
+that the system improved customer convenience, reduced service delays, and
+optimized café operations. These results support the development of CafeConnect as
+an efficient online ordering management system.
+
+Online Restaurant Management System Study
+Salakham and Talasee (2024) developed an online restaurant management system
+using PHP and MySQL. The study found that users were highly satisfied with the
+system's efficiency, design quality, and operational performance. Their research
+supports the implementation of CafeConnect to improve café service quality and
+management processes.
+
+Restaurant Management Information System Study
+Friyani (2026) designed and implemented a web-based Restaurant Management
+Information System that integrated ordering, inventory, payment, and reporting
+functions. The study showed that the system improved staff coordination and customer
+service efficiency, supporting the centralized features of CafeConnect.
+
+Point of Sales System Study
+Elaine et al. (2024) conducted a study on a web-based Point of Sales system for a
+café business. Their findings indicated that automated ordering and inventory
+management improved operational efficiency and organized transaction recording. This
+supports the sales and inventory functions of CafeConnect.
+
+Web-Based Menu Ordering Information System Study
+Nainggolan et al. (2025) developed a web-based menu ordering information system
+using the waterfall development model. The study found that the system accelerated
+order processing and minimized manual recording errors. These findings support the
+automation objectives of CafeConnect.
+Mobile Food Ordering Application Study
+Xu et al. (2024) analyzed customer reviews and transaction data related to mobile food
+ordering applications. Their study concluded that online ordering systems improve
+customer satisfaction and restaurant performance. This supports the implementation of
+online ordering features in CafeConnect.
+
+Hybrid Ordering System Study
+Cuento et al. (2025) conducted a simulation study on hybrid ordering systems in
+fast-food restaurants. Their research showed that digital ordering technologies improved
+service speed, operational efficiency, and customer experience. These findings support
+the customer service objectives of CafeConnect.
+
+Inventory Management System Study
+Furtos (2026) assessed inventory management systems used by cafés and found that
+accurate inventory tracking reduces stock inconsistencies and improves business
+performance. Their findings support the inventory monitoring features included in
+CafeConnect.
+
+Blockchain-Based Food Delivery System Study
+Talukder et al. (2022) proposed a blockchain-based food delivery system that focused
+on transaction security and customer satisfaction. The study demonstrated that
+automated systems improve service reliability and reduce delays, supporting the secure
+transaction capabilities of CafeConnect.
+
+Online Ordering System Study for Takeaway Shops
+Sikder and Anae (2010) investigated the implementation of online ordering systems in
+takeaway shops. Their findings revealed that digital ordering platforms improved
+operational efficiency, transaction management, and customer convenience. These
+results support the development of CafeConnect as a modern online ordering
+management system.
+CHAPTER 3
+
