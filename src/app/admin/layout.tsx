@@ -13,7 +13,6 @@ const NAV_LINKS = [
   { href: "/admin/reports",     label: "Reports",     icon: "fa-chart-line" },
   { href: "/admin/shifts",      label: "Shifts",      icon: "fa-clock" },
   { href: "/admin/audit-logs",  label: "Audit Logs",  icon: "fa-shield-halved" },
-  { href: "/admin/about",       label: "About",       icon: "fa-circle-info" },
   { href: "/admin/dev",         label: "Dev Tools",   icon: "fa-flask" },
   { href: "/admin/settings",    label: "Settings",    icon: "fa-user-gear" },
 ];
