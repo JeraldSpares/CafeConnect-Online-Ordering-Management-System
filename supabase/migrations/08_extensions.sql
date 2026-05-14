@@ -333,7 +333,8 @@ as $$
      limit 1
   ),
   threshold as (
-    select coalesce((value)::int, 10) as t
+    -- jsonb -> int requires going through text first
+    select coalesce((value::text)::int, 10) as t
       from public.app_settings
      where key = 'loyalty_threshold'
   )
@@ -341,11 +342,11 @@ as $$
     cust.full_name,
     (select count(*)
        from public.orders o
-       join public.transactions t on t.order_id = o.id
+       join public.transactions tx on tx.order_id = o.id
       where o.customer_id = cust.id
-        and t.status = 'paid'
+        and tx.status = 'paid'
         and o.status = 'completed') as paid_orders,
-    (select t from threshold) as next_free_at
+    coalesce((select t from threshold), 10) as next_free_at
   from cust;
 $$;
 
