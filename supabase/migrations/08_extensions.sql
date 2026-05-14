@@ -318,36 +318,60 @@ returns table (
   paid_orders bigint,
   next_free_at int
 )
-language sql
+language plpgsql
 stable
 security definer
 set search_path = public
 as $$
-  with cust as (
-    select c.id, c.full_name
-      from public.customers c
-     where length(trim(p_phone)) >= 7
-       and c.phone is not null
-       and regexp_replace(c.phone, '[^0-9]', '', 'g') =
-           regexp_replace(p_phone,   '[^0-9]', '', 'g')
-     limit 1
-  ),
-  threshold as (
-    -- jsonb -> int requires going through text first
-    select coalesce((value::text)::int, 10) as t
-      from public.app_settings
-     where key = 'loyalty_threshold'
-  )
-  select
-    cust.full_name,
-    (select count(*)
-       from public.orders o
-       join public.transactions tx on tx.order_id = o.id
-      where o.customer_id = cust.id
-        and tx.status = 'paid'
-        and o.status = 'completed') as paid_orders,
-    coalesce((select t from threshold), 10) as next_free_at
-  from cust;
+declare
+  v_phone_clean text;
+  v_threshold int := 10;
+  v_cust_id uuid;
+  v_cust_name text;
+  v_paid bigint;
+begin
+  v_phone_clean := regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g');
+  if length(v_phone_clean) < 7 then
+    return;
+  end if;
+
+  -- Resolve threshold from settings (fallback 10)
+  select coalesce((value::text)::int, 10)
+    into v_threshold
+    from public.app_settings
+   where key = 'loyalty_threshold'
+   limit 1;
+  if v_threshold is null then
+    v_threshold := 10;
+  end if;
+
+  -- Find the customer by phone
+  select c.id, c.full_name
+    into v_cust_id, v_cust_name
+    from public.customers c
+   where c.phone is not null
+     and regexp_replace(c.phone, '[^0-9]', '', 'g') = v_phone_clean
+   order by c.created_at desc
+   limit 1;
+
+  if v_cust_id is null then
+    return;
+  end if;
+
+  -- Count paid completed orders
+  select count(*)
+    into v_paid
+    from public.orders o
+    join public.transactions tx on tx.order_id = o.id
+   where o.customer_id = v_cust_id
+     and tx.status = 'paid'
+     and o.status = 'completed';
+
+  full_name    := v_cust_name;
+  paid_orders  := coalesce(v_paid, 0);
+  next_free_at := v_threshold;
+  return next;
+end;
 $$;
 
 grant execute on function public.customer_loyalty_status(text) to anon, authenticated;
