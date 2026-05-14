@@ -32,8 +32,16 @@ export function NotificationsBell() {
   // Subscribe to orders + transactions realtime
   useEffect(() => {
     const supabase = createClient();
+    // Unique channel name per mount so React Strict Mode's double-effect
+    // in dev doesn't try to re-use the previous channel (which would error
+    // with "cannot add postgres_changes callbacks ... after subscribe()").
+    const channelName = `admin-bell-${
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2)
+    }`;
     const channel = supabase
-      .channel("admin-bell")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders" },

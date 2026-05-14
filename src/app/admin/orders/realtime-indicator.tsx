@@ -12,9 +12,16 @@ export function RealtimeIndicator() {
 
   useEffect(() => {
     const supabase = createClient();
+    // Unique channel name per mount so React Strict Mode's double-effect
+    // doesn't try to re-subscribe an already-subscribed channel.
+    const channelName = `admin-orders-${
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2)
+    }`;
 
     const channel = supabase
-      .channel("admin-orders")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "orders" },
