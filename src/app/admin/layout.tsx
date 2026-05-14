@@ -11,7 +11,6 @@ const NAV_LINKS = [
   { href: "/admin/customers",   label: "Customers",   icon: "fa-users" },
   { href: "/admin/discounts",   label: "Discounts",   icon: "fa-tags" },
   { href: "/admin/reports",     label: "Reports",     icon: "fa-chart-line" },
-  { href: "/admin/shifts",      label: "Shifts",      icon: "fa-clock" },
   { href: "/admin/audit-logs",  label: "Audit Logs",  icon: "fa-shield-halved" },
   { href: "/admin/dev",         label: "Dev Tools",   icon: "fa-flask" },
   { href: "/admin/settings",    label: "Settings",    icon: "fa-user-gear" },
