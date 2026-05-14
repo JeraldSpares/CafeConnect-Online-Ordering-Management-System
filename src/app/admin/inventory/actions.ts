@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 export async function createInventoryItem(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -73,6 +74,21 @@ export async function recordMovement(itemId: string, formData: FormData) {
   });
 
   if (error) return { error: error.message };
+
+  const { data: item } = await supabase
+    .from("inventory_items")
+    .select("name, unit")
+    .eq("id", itemId)
+    .single();
+
+  void logAudit({
+    action: `inventory.${reason}`,
+    entityType: "inventory_item",
+    entityId: itemId,
+    entityLabel: item?.name ?? null,
+    metadata: { change, unit: item?.unit, notes: notes ?? null },
+  });
+
   revalidatePath("/admin/inventory");
   revalidatePath(`/admin/inventory/${itemId}`);
   revalidatePath("/admin/dashboard");

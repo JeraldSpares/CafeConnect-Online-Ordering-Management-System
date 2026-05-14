@@ -55,7 +55,7 @@ export default async function OrderDetailPage({
           <i className="fa-solid fa-arrow-left" /> Back to orders
         </Link>
         <Link
-          href={`/admin/orders/${id}/receipt`}
+          href={`/receipt/${id}`}
           target="_blank"
           className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
         >

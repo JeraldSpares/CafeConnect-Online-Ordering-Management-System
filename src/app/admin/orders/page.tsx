@@ -2,11 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { peso, formatDateTime } from "@/lib/format";
 import { RealtimeIndicator } from "./realtime-indicator";
-import {
-  Pagination,
-  SortableTH,
-  parseTableParams,
-} from "@/components/pagination";
+import { Pagination, parseTableParams } from "@/components/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -115,120 +111,148 @@ export default async function OrdersPage({
     filter,
     view,
     content: (
-      <section className="cc-card overflow-hidden">
+      <div className="space-y-4">
+        {/* Sort bar — moves sort control out of the table */}
+        {orders && orders.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-[var(--color-muted)]">
+              <strong className="text-[var(--color-primary)]">{total}</strong>{" "}
+              order{total === 1 ? "" : "s"} · sorted by{" "}
+              <strong className="text-[var(--color-primary)]">
+                {sort === "created_at"
+                  ? "placed"
+                  : sort === "order_number"
+                    ? "order #"
+                    : sort}
+              </strong>{" "}
+              ({dir})
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  ["created_at", "Placed"],
+                  ["total", "Total"],
+                  ["status", "Status"],
+                  ["order_number", "Order #"],
+                ] as const
+              ).map(([key, label]) => {
+                const isActive = sort === key;
+                const nextDir =
+                  isActive && dir === "asc" ? "desc" : "asc";
+                const params = new URLSearchParams();
+                Object.entries(raw).forEach(([k, v]) => {
+                  if (
+                    v !== undefined &&
+                    v !== "" &&
+                    k !== "sort" &&
+                    k !== "dir" &&
+                    k !== "page"
+                  ) {
+                    params.set(k, v);
+                  }
+                });
+                params.set("sort", key);
+                params.set("dir", nextDir);
+                return (
+                  <Link
+                    key={key}
+                    href={`/admin/orders?${params.toString()}`}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                      isActive
+                        ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                        : "border-[var(--color-line)] bg-white text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                    }`}
+                  >
+                    {label}
+                    {isActive && (
+                      <i
+                        className={`fa-solid ${dir === "asc" ? "fa-arrow-up" : "fa-arrow-down"} text-[9px]`}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {orders && orders.length > 0 ? (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--color-primary-50)] text-left">
-                  <tr>
-                    <SortableTH
-                      label="Order #"
-                      sortKey="order_number"
-                      current={sort}
-                      dir={dir}
-                      pathname="/admin/orders"
-                      searchParams={raw}
-                    />
-                    <th className="px-6 py-3 text-left text-[11px] uppercase tracking-wider text-[var(--color-primary)]/80">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-[11px] uppercase tracking-wider text-[var(--color-primary)]/80">
-                      Type
-                    </th>
-                    <SortableTH
-                      label="Status"
-                      sortKey="status"
-                      current={sort}
-                      dir={dir}
-                      pathname="/admin/orders"
-                      searchParams={raw}
-                    />
-                    <SortableTH
-                      label="Total"
-                      sortKey="total"
-                      current={sort}
-                      dir={dir}
-                      pathname="/admin/orders"
-                      searchParams={raw}
-                    />
-                    <SortableTH
-                      label="Placed"
-                      sortKey="created_at"
-                      current={sort}
-                      dir={dir}
-                      pathname="/admin/orders"
-                      searchParams={raw}
-                    />
-                    <th className="px-6 py-3" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {(orders as OrderRow[]).map((o) => {
-                    const customer = Array.isArray(o.customers)
-                      ? o.customers[0]
-                      : o.customers;
-                    return (
-                      <tr
-                        key={o.id}
-                        className="border-t border-[var(--color-line)] transition-colors hover:bg-[var(--color-primary-50)]/40"
-                      >
-                        <td className="px-6 py-3 font-mono text-[var(--color-primary)]">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {(orders as OrderRow[]).map((o) => {
+                const customer = Array.isArray(o.customers)
+                  ? o.customers[0]
+                  : o.customers;
+                return (
+                  <Link
+                    key={o.id}
+                    href={`/admin/orders/${o.id}`}
+                    className="cc-card cc-card-hover group flex flex-col gap-3 p-4 focus-ring"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-mono text-xs font-semibold text-[var(--color-primary)]">
                           {o.order_number}
-                        </td>
-                        <td className="px-6 py-3">
+                        </p>
+                        <p className="mt-0.5 truncate text-sm font-semibold text-[var(--color-text)]">
+                          <i className="fa-solid fa-user mr-1 text-[var(--color-muted)]" />
                           {customer?.full_name ?? "Walk-in"}
-                        </td>
-                        <td className="px-6 py-3 text-xs text-[var(--color-muted)]">
+                        </p>
+                      </div>
+                      <span
+                        className={`chip shrink-0 ${STATUS_COLOR[o.status] ?? "bg-zinc-100"}`}
+                      >
+                        {o.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-end justify-between gap-2">
+                      <div className="text-xs text-[var(--color-muted)]">
+                        <p>
                           <i
-                            className={`fa-solid ${o.order_type === "dine_in" ? "fa-chair" : "fa-bag-shopping"}`}
-                          />{" "}
-                          {o.order_type === "dine_in" ? "Dine-in" : "Takeaway"}
-                        </td>
-                        <td className="px-6 py-3">
-                          <span
-                            className={`chip ${STATUS_COLOR[o.status] ?? "bg-zinc-100"}`}
-                          >
-                            {o.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 font-semibold">
-                          {peso.format(Number(o.total))}
-                        </td>
-                        <td className="px-6 py-3 text-[var(--color-muted)]">
+                            className={`fa-solid ${o.order_type === "dine_in" ? "fa-chair" : "fa-bag-shopping"} mr-1`}
+                          />
+                          {o.order_type === "dine_in"
+                            ? "Dine-in"
+                            : "Takeaway"}
+                        </p>
+                        <p className="mt-0.5">
+                          <i className="fa-solid fa-clock mr-1" />
                           {formatDateTime(o.created_at)}
-                        </td>
-                        <td className="px-6 py-3 text-right">
-                          <Link
-                            href={`/admin/orders/${o.id}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
-                          >
-                            Open <i className="fa-solid fa-arrow-right" />
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-display text-xl font-bold text-[var(--color-primary)]">
+                          {peso.format(Number(o.total))}
+                        </p>
+                        <p className="mt-0.5 text-[10px] font-semibold text-[var(--color-primary)] opacity-0 transition-opacity group-hover:opacity-100">
+                          Open <i className="fa-solid fa-arrow-right" />
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-            <Pagination
-              pathname="/admin/orders"
-              searchParams={raw}
-              page={page}
-              perPage={perPage}
-              total={total}
-            />
+            <div className="cc-card overflow-hidden">
+              <Pagination
+                pathname="/admin/orders"
+                searchParams={raw}
+                page={page}
+                perPage={perPage}
+                total={total}
+              />
+            </div>
           </>
         ) : (
-          <div className="px-6 py-12 text-center">
+          <section className="cc-card px-6 py-12 text-center">
             <i className="fa-solid fa-inbox text-4xl text-[var(--color-primary-200)]" />
             <p className="mt-2 text-sm text-[var(--color-muted)]">
               {q ? `No orders match "${q}".` : "No orders in this view."}
             </p>
-          </div>
+          </section>
         )}
-      </section>
+      </div>
     ),
   });
 }

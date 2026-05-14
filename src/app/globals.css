@@ -268,3 +268,17 @@ html, body {
     radial-gradient(circle at 1px 1px, rgba(30, 57, 50, 0.06) 1px, transparent 0);
   background-size: 24px 24px;
 }
+
+/* Global print rules — used by /admin/reports → Print/PDF and similar */
+@media print {
+  html, body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .cc-card { box-shadow: none !important; border-color: #cfcfcf !important; }
+  /* Force the admin layout into a single column when printing */
+  .print-target { padding: 0 !important; }
+  /* Avoid breaking a chart/card across pages mid-figure */
+  .print-keep { break-inside: avoid; page-break-inside: avoid; }
+  /* Coffee-bean decorations and animations look bad on paper */
+  .cc-bean, .animate-float, .animate-spin-slow, .animate-pulse-ring { display: none !important; }
+  @page { margin: 12mm; }
+}

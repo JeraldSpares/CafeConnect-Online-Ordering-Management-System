@@ -6,6 +6,7 @@ import {
   sendOrderCompletedToCustomer,
   sendOrderReadyToCustomer,
 } from "@/lib/email";
+import { logAudit } from "@/lib/audit";
 
 type Status = "pending" | "preparing" | "ready" | "completed" | "cancelled";
 
@@ -32,6 +33,21 @@ export async function advanceOrderStatus(orderId: string, current: Status) {
 
   if (error) return { error: error.message };
 
+  // Look up the order number for nicer audit/email payloads.
+  const { data: orderRow } = await supabase
+    .from("orders")
+    .select("order_number")
+    .eq("id", orderId)
+    .single();
+
+  void logAudit({
+    action: "order.status_changed",
+    entityType: "order",
+    entityId: orderId,
+    entityLabel: orderRow?.order_number ?? null,
+    metadata: { from: current, to: next },
+  });
+
   // Fire-and-forget customer notification on key transitions
   if (next === "ready" || next === "completed") {
     void notifyCustomerOnStatusChange(supabase, orderId, next).catch((e) =>
@@ -54,6 +70,20 @@ export async function cancelOrder(orderId: string) {
     .in("status", ["pending", "preparing", "ready"]);
 
   if (error) return { error: error.message };
+
+  const { data: orderRow } = await supabase
+    .from("orders")
+    .select("order_number")
+    .eq("id", orderId)
+    .single();
+
+  void logAudit({
+    action: "order.cancelled",
+    entityType: "order",
+    entityId: orderId,
+    entityLabel: orderRow?.order_number ?? null,
+  });
+
   revalidatePath("/admin/orders");
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/dashboard");
@@ -88,6 +118,21 @@ export async function recordPayment(orderId: string, formData: FormData) {
   });
 
   if (error) return { error: error.message };
+
+  const { data: orderRow } = await supabase
+    .from("orders")
+    .select("order_number")
+    .eq("id", orderId)
+    .single();
+
+  void logAudit({
+    action: "payment.recorded",
+    entityType: "order",
+    entityId: orderId,
+    entityLabel: orderRow?.order_number ?? null,
+    metadata: { method, amount, reference: reference || null },
+  });
+
   revalidatePath(`/admin/orders/${orderId}`);
   revalidatePath("/admin/orders");
   revalidatePath("/admin/dashboard");

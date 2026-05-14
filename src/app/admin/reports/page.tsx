@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { peso, formatDate } from "@/lib/format";
 import { Donut, Heatmap, LineChart } from "@/components/charts";
+import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -263,7 +264,7 @@ export default async function ReportsPage({
             day{days === 1 ? "" : "s"} · timezone Asia/Manila
           </p>
         </div>
-        <nav className="flex flex-wrap gap-2">
+        <nav className="no-print flex flex-wrap gap-2">
           {[7, 14, 30, 90].map((d) => (
             <a
               key={d}
@@ -277,6 +278,7 @@ export default async function ReportsPage({
               <i className="fa-solid fa-calendar-days" /> {d}d
             </a>
           ))}
+          <PrintButton />
           <a
             href={`/admin/reports/export?days=${days}`}
             className="inline-flex items-center gap-1 rounded-full border border-[var(--color-accent)] bg-[var(--color-accent)] px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-110"

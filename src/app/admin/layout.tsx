@@ -3,14 +3,15 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminShell } from "./admin-shell";
 
 const NAV_LINKS = [
-  { href: "/admin/dashboard", label: "Dashboard", icon: "fa-gauge-high" },
-  { href: "/admin/orders",    label: "Orders",    icon: "fa-receipt" },
-  { href: "/admin/pos",       label: "POS",       icon: "fa-cash-register" },
-  { href: "/admin/menu",      label: "Menu",      icon: "fa-utensils" },
-  { href: "/admin/inventory", label: "Inventory", icon: "fa-boxes-stacked" },
-  { href: "/admin/customers", label: "Customers", icon: "fa-users" },
-  { href: "/admin/reports",   label: "Reports",   icon: "fa-chart-line" },
-  { href: "/admin/settings",  label: "Settings",  icon: "fa-user-gear" },
+  { href: "/admin/dashboard",   label: "Dashboard",   icon: "fa-gauge-high" },
+  { href: "/admin/orders",      label: "Orders",      icon: "fa-receipt" },
+  { href: "/admin/pos",         label: "POS",         icon: "fa-cash-register" },
+  { href: "/admin/menu",        label: "Menu",        icon: "fa-utensils" },
+  { href: "/admin/inventory",   label: "Inventory",   icon: "fa-boxes-stacked" },
+  { href: "/admin/customers",   label: "Customers",   icon: "fa-users" },
+  { href: "/admin/reports",     label: "Reports",     icon: "fa-chart-line" },
+  { href: "/admin/audit-logs",  label: "Audit Logs",  icon: "fa-shield-halved" },
+  { href: "/admin/settings",    label: "Settings",    icon: "fa-user-gear" },
 ];
 
 export default async function AdminLayout({

@@ -12,6 +12,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          id: string
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: string | null
+          action: string
+          entity_type: string
+          entity_id: string | null
+          entity_label: string | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          action: string
+          entity_type: string
+          entity_id?: string | null
+          entity_label?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          action?: string
+          entity_type?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string

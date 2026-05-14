@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { SidebarLink } from "./sidebar-link";
 import { BrandLogo } from "@/components/brand-logo";
+import { NotificationsBell } from "./notifications-bell";
 
 type NavLink = { href: string; label: string; icon: string };
 
@@ -39,7 +40,7 @@ export function AdminShell({
   return (
     <div className="flex min-h-screen flex-1 bg-[var(--color-bg)]">
       {/* Desktop sidebar — sticky to viewport so it stays fixed while content scrolls */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start border-r border-[var(--color-line)] bg-white shadow-sm lg:flex">
+      <aside className="no-print sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start border-r border-[var(--color-line)] bg-white shadow-sm lg:flex">
         <SidebarBrand />
         <nav className="flex-1 space-y-0.5 px-3 pb-4 pt-3">
           {navLinks.map((link) => (
@@ -86,8 +87,13 @@ export function AdminShell({
       </div>
 
       <div className="flex flex-1 flex-col overflow-x-hidden">
+        {/* Desktop top strip — only the bell sits up here */}
+        <header className="no-print sticky top-0 z-30 hidden items-center justify-end border-b border-[var(--color-line)] bg-white/85 px-6 py-3 backdrop-blur lg:flex">
+          <NotificationsBell />
+        </header>
+
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-line)] bg-white px-4 py-3 lg:hidden">
+        <header className="no-print sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-line)] bg-white px-4 py-3 lg:hidden">
           <button
             onClick={() => setOpen(true)}
             className="grid h-10 w-10 place-items-center rounded-full text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
@@ -101,13 +107,16 @@ export function AdminShell({
               CafeConnect
             </span>
           </Link>
-          <Link
-            href="/admin/pos"
-            className="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-white"
-            aria-label="POS"
-          >
-            <i className="fa-solid fa-cash-register" />
-          </Link>
+          <div className="flex items-center gap-2">
+            <NotificationsBell />
+            <Link
+              href="/admin/pos"
+              className="grid h-10 w-10 place-items-center rounded-full bg-[var(--color-primary)] text-white"
+              aria-label="POS"
+            >
+              <i className="fa-solid fa-cash-register" />
+            </Link>
+          </div>
         </header>
 
         <main className="flex-1 overflow-x-hidden">{children}</main>
