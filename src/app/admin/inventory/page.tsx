@@ -45,7 +45,7 @@ export default async function InventoryPage({
 
   if (q) query = query.ilike("name", `%${q}%`);
 
-  const [{ data: items }, { data: recent }] = await Promise.all([
+  const [{ data: items }, { data: recent }, { data: etas }] = await Promise.all([
     query,
     supabase
       .from("inventory_movements")
@@ -54,7 +54,16 @@ export default async function InventoryPage({
       )
       .order("created_at", { ascending: false })
       .limit(10),
+    supabase.rpc("inventory_eta", { p_lookback_days: 14 }),
   ]);
+
+  const etaByItem = new Map<string, { days: number | null; daily: number }>();
+  for (const e of etas ?? []) {
+    etaByItem.set(e.inventory_item_id, {
+      days: e.days_remaining,
+      daily: Number(e.daily_consumption),
+    });
+  }
 
   const allItems = items ?? [];
   const lowStock = allItems.filter(
@@ -70,17 +79,25 @@ export default async function InventoryPage({
 
   return (
     <div className="space-y-6 p-8 animate-fade-up">
-      <header>
-        <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
-          <i className="fa-solid fa-boxes-stacked" /> Stock Room
-        </p>
-        <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
-          Inventory
-        </h1>
-        <p className="text-sm text-[var(--color-muted)]">
-          Track stock levels in real time. Each movement updates the current
-          quantity automatically.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <i className="fa-solid fa-boxes-stacked" /> Stock Room
+          </p>
+          <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
+            Inventory
+          </h1>
+          <p className="text-sm text-[var(--color-muted)]">
+            Track stock levels in real time. Each movement updates the current
+            quantity automatically.
+          </p>
+        </div>
+        <Link
+          href="/admin/inventory/stock-take"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white"
+        >
+          <i className="fa-solid fa-clipboard-check" /> Stock-take mode
+        </Link>
       </header>
 
       <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -228,6 +245,9 @@ export default async function InventoryPage({
                     pathname="/admin/inventory"
                     searchParams={raw}
                   />
+                  <th className="px-6 py-3 text-left text-[11px] uppercase tracking-wider text-[var(--color-primary)]/80">
+                    ETA
+                  </th>
                   <SortableTH
                     label="Updated"
                     sortKey="updated_at"
@@ -274,6 +294,43 @@ export default async function InventoryPage({
                       </td>
                       <td className="px-6 py-3">
                         {peso.format(Number(it.cost_per_unit))}
+                      </td>
+                      <td className="px-6 py-3 text-xs">
+                        {(() => {
+                          const e = etaByItem.get(it.id);
+                          if (!e || e.daily === 0)
+                            return (
+                              <span className="text-[var(--color-muted)]">
+                                —
+                              </span>
+                            );
+                          const days = e.days ?? 0;
+                          const danger = days < 3;
+                          const warn = days < 7;
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1 ${
+                                danger
+                                  ? "font-bold text-[var(--color-danger)]"
+                                  : warn
+                                    ? "font-semibold text-[var(--color-accent)]"
+                                    : "text-[var(--color-muted)]"
+                              }`}
+                              title={`Avg ${e.daily.toFixed(2)} ${it.unit}/day`}
+                            >
+                              <i
+                                className={`fa-solid ${
+                                  danger
+                                    ? "fa-fire animate-pulse"
+                                    : warn
+                                      ? "fa-triangle-exclamation"
+                                      : "fa-hourglass-half"
+                                }`}
+                              />
+                              ~{days}d
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-3 text-[var(--color-muted)]">
                         {formatDateTime(it.updated_at)}

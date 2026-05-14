@@ -3,6 +3,7 @@ import { CartProvider } from "@/lib/cart";
 import { CartIndicator } from "./cart-indicator";
 import { BrandLogo } from "@/components/brand-logo";
 import { ChatWidget } from "@/components/chat-widget";
+import { DemoBanner } from "@/components/demo-banner";
 
 export default function ShopLayout({
   children,
@@ -12,6 +13,7 @@ export default function ShopLayout({
   return (
     <CartProvider>
       <div className="flex min-h-screen flex-1 flex-col">
+        <DemoBanner />
         <header className="sticky top-0 z-40 border-b border-[var(--color-line)] bg-white/85 backdrop-blur-md">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
             <Link
@@ -29,6 +31,12 @@ export default function ShopLayout({
                 className="rounded-full px-4 py-2 font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] transition-colors"
               >
                 <i className="fa-solid fa-utensils mr-1.5" /> Menu
+              </Link>
+              <Link
+                href="/my-orders"
+                className="rounded-full px-4 py-2 font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] transition-colors"
+              >
+                <i className="fa-solid fa-clock-rotate-left mr-1.5" /> My orders
               </Link>
               <Link
                 href="/track"

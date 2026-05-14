@@ -14,7 +14,19 @@ export type PlaceOrderInput = {
   order_type: "dine_in" | "takeaway";
   notes?: string;
   items: { menu_item_id: string; quantity: number; notes?: string }[];
+  discount_code?: string;
 };
+
+export async function previewDiscount(code: string, subtotal: number) {
+  if (!code?.trim()) return { discount: 0 };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("apply_discount", {
+    p_code: code,
+    p_subtotal: subtotal,
+  });
+  if (error) return { error: error.message };
+  return { discount: Number(data ?? 0) };
+}
 
 export async function placeOrderAction(input: PlaceOrderInput) {
   if (!input.customer_name?.trim()) {
@@ -42,6 +54,55 @@ export async function placeOrderAction(input: PlaceOrderInput) {
 
   const orderNumber = row.out_order_number as string;
   const orderId = row.out_order_id as string;
+
+  // Apply discount if one was provided. Done after place_order to keep the
+  // RPC simple — we validate via the apply_discount RPC, then adjust the
+  // order row.
+  if (input.discount_code?.trim()) {
+    const { data: orderRow } = await supabase
+      .from("orders")
+      .select("subtotal")
+      .eq("id", orderId)
+      .single();
+    if (orderRow) {
+      const { data: discValue } = await supabase.rpc("apply_discount", {
+        p_code: input.discount_code,
+        p_subtotal: Number(orderRow.subtotal),
+      });
+      const discount = Number(discValue ?? 0);
+      if (discount > 0) {
+        const { data: matched } = await supabase
+          .from("discounts")
+          .select("id")
+          .ilike("code", input.discount_code.trim())
+          .limit(1)
+          .maybeSingle();
+        await supabase
+          .from("orders")
+          .update({
+            discount,
+            total: Number(orderRow.subtotal) - discount,
+            discount_code: input.discount_code.toUpperCase(),
+            discount_id: matched?.id ?? null,
+          })
+          .eq("id", orderId);
+        // increment uses
+        if (matched?.id) {
+          const { data: cur } = await supabase
+            .from("discounts")
+            .select("uses_count")
+            .eq("id", matched.id)
+            .single();
+          if (cur) {
+            await supabase
+              .from("discounts")
+              .update({ uses_count: cur.uses_count + 1 })
+              .eq("id", matched.id);
+          }
+        }
+      }
+    }
+  }
 
   // Fire-and-forget emails — never block the checkout response on them.
   void sendOrderNotifications(supabase, orderId).catch((e) =>

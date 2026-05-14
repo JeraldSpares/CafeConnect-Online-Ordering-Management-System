@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { useToast } from "@/lib/toast";
 import { peso } from "@/lib/format";
-import { placeOrderAction } from "./actions";
+import { placeOrderAction, previewDiscount } from "./actions";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -20,6 +20,34 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [orderType, setOrderType] = useState<"dine_in" | "takeaway">("takeaway");
   const [notes, setNotes] = useState("");
+  const [discountCode, setDiscountCode] = useState("");
+  const [discountValue, setDiscountValue] = useState(0);
+  const [discountChecking, setDiscountChecking] = useState(false);
+  const [discountMsg, setDiscountMsg] = useState<string | null>(null);
+
+  async function checkDiscount() {
+    const code = discountCode.trim();
+    if (!code) return;
+    setDiscountChecking(true);
+    setDiscountMsg(null);
+    try {
+      const res = await previewDiscount(code, subtotal);
+      if (res.error) {
+        setDiscountMsg(res.error);
+        setDiscountValue(0);
+        return;
+      }
+      if (!res.discount || res.discount <= 0) {
+        setDiscountMsg("Code is invalid, expired, or your order is below the minimum.");
+        setDiscountValue(0);
+        return;
+      }
+      setDiscountValue(res.discount);
+      setDiscountMsg(`Saved ${peso.format(res.discount)} 🎉`);
+    } finally {
+      setDiscountChecking(false);
+    }
+  }
 
   if (lines.length === 0) {
     return (
@@ -54,6 +82,7 @@ export default function CheckoutPage() {
           menu_item_id: l.menu_item_id,
           quantity: l.quantity,
         })),
+        discount_code: discountValue > 0 ? discountCode.trim() : undefined,
       });
       if (res.error) {
         setError(res.error);
@@ -164,6 +193,52 @@ export default function CheckoutPage() {
           />
         </section>
 
+        {/* Discount code */}
+        <section className="cc-card p-6">
+          <h2 className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
+            <i className="fa-solid fa-ticket" /> Discount code (optional)
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={discountCode}
+              onChange={(e) => {
+                setDiscountCode(e.target.value.toUpperCase());
+                setDiscountValue(0);
+                setDiscountMsg(null);
+              }}
+              placeholder="STUDENT10"
+              className="cc-input flex-1 font-mono uppercase"
+            />
+            <button
+              type="button"
+              onClick={checkDiscount}
+              disabled={discountChecking || !discountCode.trim()}
+              className="btn-ghost"
+            >
+              {discountChecking ? (
+                <>
+                  <i className="fa-solid fa-spinner fa-spin" /> Checking…
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-check" /> Apply
+                </>
+              )}
+            </button>
+          </div>
+          {discountMsg && (
+            <p
+              className={`mt-2 text-xs ${
+                discountValue > 0
+                  ? "text-[var(--color-success)]"
+                  : "text-[var(--color-danger)]"
+              }`}
+            >
+              {discountMsg}
+            </p>
+          )}
+        </section>
+
         <div className="cc-card flex items-start gap-3 border-l-4 border-l-[var(--color-accent)] p-4 text-sm text-[var(--color-muted)]">
           <i className="fa-solid fa-circle-info mt-0.5 text-[var(--color-accent)]" />
           <p>
@@ -190,7 +265,7 @@ export default function CheckoutPage() {
           ) : (
             <>
               <i className="fa-solid fa-check" /> Place order ·{" "}
-              {peso.format(subtotal)}
+              {peso.format(Math.max(0, subtotal - discountValue))}
             </>
           )}
         </button>
@@ -223,10 +298,24 @@ export default function CheckoutPage() {
             ))}
           </ul>
           <div className="my-4 h-px bg-[var(--color-line)]" />
-          <div className="flex items-end justify-between">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[var(--color-muted)]">Subtotal</span>
+            <span>{peso.format(subtotal)}</span>
+          </div>
+          {discountValue > 0 && (
+            <div className="mt-1 flex items-center justify-between text-sm">
+              <span className="text-[var(--color-success)]">
+                <i className="fa-solid fa-ticket mr-1" /> {discountCode}
+              </span>
+              <span className="text-[var(--color-success)]">
+                − {peso.format(discountValue)}
+              </span>
+            </div>
+          )}
+          <div className="mt-3 flex items-end justify-between border-t border-[var(--color-line)] pt-3">
             <span className="text-sm text-[var(--color-muted)]">Total</span>
             <span className="font-display text-2xl font-bold text-[var(--color-primary)]">
-              {peso.format(subtotal)}
+              {peso.format(Math.max(0, subtotal - discountValue))}
             </span>
           </div>
         </div>

@@ -203,6 +203,16 @@ export default async function OrderTrackingPage({
         </footer>
       </section>
 
+      {order.payment?.status !== "paid" && !isCancelled && (
+        <Link
+          href={`/pay/${order.order_number}`}
+          className="btn-primary w-full !py-3 text-base"
+        >
+          <i className="fa-solid fa-credit-card" /> Pay online ·{" "}
+          {peso.format(Number(order.total))}
+        </Link>
+      )}
+
       <div className="flex justify-between">
         <Link href="/menu" className="btn-ghost">
           <i className="fa-solid fa-rotate-right" /> Order again

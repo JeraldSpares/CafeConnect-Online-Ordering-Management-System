@@ -12,6 +12,111 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: { key: string; value: Json; updated_at: string; updated_by: string | null }
+        Insert: { key: string; value: Json; updated_at?: string; updated_by?: string | null }
+        Update: { key?: string; value?: Json; updated_at?: string; updated_by?: string | null }
+        Relationships: []
+      }
+      discounts: {
+        Row: {
+          id: string
+          code: string
+          description: string | null
+          kind: string
+          amount: number
+          min_order_total: number
+          max_uses: number | null
+          uses_count: number
+          starts_at: string | null
+          expires_at: string | null
+          is_active: boolean
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          code: string
+          description?: string | null
+          kind: string
+          amount: number
+          min_order_total?: number
+          max_uses?: number | null
+          uses_count?: number
+          starts_at?: string | null
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          code?: string
+          description?: string | null
+          kind?: string
+          amount?: number
+          min_order_total?: number
+          max_uses?: number | null
+          uses_count?: number
+          starts_at?: string | null
+          expires_at?: string | null
+          is_active?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
+      menu_item_ingredients: {
+        Row: {
+          id: string
+          menu_item_id: string
+          inventory_item_id: string
+          quantity: number
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          menu_item_id: string
+          inventory_item_id: string
+          quantity: number
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          menu_item_id?: string
+          inventory_item_id?: string
+          quantity?: number
+          notes?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      shifts: {
+        Row: {
+          id: string
+          user_id: string
+          started_at: string
+          ended_at: string | null
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          started_at?: string
+          ended_at?: string | null
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          started_at?: string
+          ended_at?: string | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           id: string
@@ -280,6 +385,8 @@ export type Database = {
           created_at: string
           customer_id: string | null
           discount: number
+          discount_code: string | null
+          discount_id: string | null
           id: string
           notes: string | null
           order_number: string
@@ -294,6 +401,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           discount?: number
+          discount_code?: string | null
+          discount_id?: string | null
           id?: string
           notes?: string | null
           order_number?: string
@@ -308,6 +417,8 @@ export type Database = {
           created_at?: string
           customer_id?: string | null
           discount?: number
+          discount_code?: string | null
+          discount_id?: string | null
           id?: string
           notes?: string | null
           order_number?: string
@@ -399,6 +510,41 @@ export type Database = {
     Views: { [_ in never]: never }
     Functions: {
       is_staff: { Args: Record<string, never>; Returns: boolean }
+      apply_discount: {
+        Args: { p_code: string; p_subtotal: number }
+        Returns: number
+      }
+      inventory_eta: {
+        Args: { p_lookback_days?: number }
+        Returns: {
+          inventory_item_id: string
+          name: string
+          unit: string
+          stock_quantity: number
+          reorder_level: number
+          daily_consumption: number
+          days_remaining: number | null
+        }[]
+      }
+      customer_orders_by_phone: {
+        Args: { p_phone: string }
+        Returns: {
+          order_number: string
+          status: string
+          order_type: string
+          total: number
+          created_at: string
+          customer_name: string
+        }[]
+      }
+      customer_loyalty_status: {
+        Args: { p_phone: string }
+        Returns: {
+          full_name: string
+          paid_orders: number
+          next_free_at: number
+        }[]
+      }
       get_order_by_number: { Args: { p_order_number: string }; Returns: Json }
       place_order: {
         Args: {

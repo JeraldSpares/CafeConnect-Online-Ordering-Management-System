@@ -136,7 +136,7 @@ export function PosClient({
   }
 
   return (
-    <div className="grid h-[calc(100vh-1px)] grid-cols-1 lg:grid-cols-5 lg:overflow-hidden">
+    <div className="grid min-h-screen grid-cols-1 lg:h-[calc(100vh-1px)] lg:grid-cols-5 lg:overflow-hidden">
       {/* Item grid (left) */}
       <section className="flex flex-col lg:col-span-3 lg:overflow-hidden">
         <header className="border-b border-[var(--color-line)] bg-white px-6 py-4">

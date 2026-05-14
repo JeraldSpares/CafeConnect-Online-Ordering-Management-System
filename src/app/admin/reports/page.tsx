@@ -224,6 +224,44 @@ export default async function ReportsPage({
     .slice(0, 10);
   const maxItemRev = Math.max(1, ...topItems.map((t) => t.rev));
 
+  // ----- Sales forecast (7-day moving avg projected forward 7 days) -----
+  const forecastWindow = Math.min(7, dayRevenue.length);
+  const forecastWindowAvg =
+    forecastWindow > 0
+      ? dayRevenue.slice(-forecastWindow).reduce((s, v) => s + v, 0) /
+        forecastWindow
+      : 0;
+  // Simple linear-regression slope across the last `forecastWindow` days
+  // so we capture upward/downward trends, not just a flat average.
+  function linearTrend(values: number[]) {
+    const n = values.length;
+    if (n < 2) return 0;
+    const xMean = (n - 1) / 2;
+    const yMean = values.reduce((s, v) => s + v, 0) / n;
+    let num = 0;
+    let den = 0;
+    for (let i = 0; i < n; i++) {
+      num += (i - xMean) * (values[i] - yMean);
+      den += (i - xMean) ** 2;
+    }
+    return den === 0 ? 0 : num / den;
+  }
+  const trend = linearTrend(dayRevenue.slice(-forecastWindow));
+  const forecastDays: { label: string; value: number }[] = [];
+  for (let i = 1; i <= 7; i++) {
+    const fwd = new Date();
+    fwd.setDate(fwd.getDate() + i);
+    const projected = Math.max(0, forecastWindowAvg + trend * i);
+    forecastDays.push({
+      label: new Intl.DateTimeFormat("en-PH", {
+        month: "short",
+        day: "numeric",
+      }).format(fwd),
+      value: projected,
+    });
+  }
+  const forecastTotal = forecastDays.reduce((s, d) => s + d.value, 0);
+
   // ----- Customer retention (new vs returning) -----
   const customersInWindow = (customerOrders ?? []).filter((c) => {
     const created = new Date(c.created_at).toISOString();
@@ -551,6 +589,52 @@ export default async function ReportsPage({
             </p>
           )}
         </div>
+      </section>
+
+      {/* Sales forecast */}
+      <section className="cc-card overflow-hidden">
+        <header className="flex items-center justify-between border-b border-[var(--color-line)] px-6 py-4">
+          <h2 className="font-display flex items-center gap-2 text-lg font-bold text-[var(--color-primary)]">
+            <i className="fa-solid fa-chart-line text-[var(--color-accent)]" />
+            Forecast — next 7 days
+          </h2>
+          <span className="text-xs text-[var(--color-muted)]">
+            7-day moving avg + linear trend · projected total{" "}
+            <strong className="text-[var(--color-primary)]">
+              {peso.format(forecastTotal)}
+            </strong>
+          </span>
+        </header>
+        <div className="space-y-2 px-6 py-5">
+          {forecastDays.map((d, idx) => {
+            const max = Math.max(1, ...forecastDays.map((x) => x.value));
+            const width = (d.value / max) * 100;
+            return (
+              <div
+                key={idx}
+                className="flex items-center gap-3 text-xs animate-fade-up"
+                style={{ animationDelay: `${idx * 0.04}s` }}
+              >
+                <div className="w-24 text-[var(--color-muted)]">{d.label}</div>
+                <div className="relative h-6 flex-1 overflow-hidden rounded-lg bg-[var(--color-accent-50)]">
+                  <div
+                    className="absolute inset-y-0 left-0 origin-left rounded-lg bg-gradient-to-r from-[var(--color-accent)] to-amber-700 animate-progress opacity-80"
+                    style={{ width: `${width}%` }}
+                  />
+                </div>
+                <div className="w-28 text-right font-semibold text-[var(--color-primary)]">
+                  ~{peso.format(d.value)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <footer className="border-t border-[var(--color-line)] bg-[var(--color-accent-50)]/30 px-6 py-3 text-xs text-[var(--color-muted)]">
+          <i className="fa-solid fa-circle-info mr-1" />
+          Estimate is based on the trend in your last {forecastWindow} day
+          {forecastWindow === 1 ? "" : "s"}. The more historical data you
+          have, the more reliable the projection.
+        </footer>
       </section>
 
       {/* Top items */}

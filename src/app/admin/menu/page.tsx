@@ -70,17 +70,25 @@ export default async function MenuPage({
 
   return (
     <div className="space-y-6 p-8 animate-fade-up">
-      <header>
-        <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
-          <i className="fa-solid fa-utensils" /> Menu Management
-        </p>
-        <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
-          Menu
-        </h1>
-        <p className="text-sm text-[var(--color-muted)]">
-          Manage categories, add new items, and toggle availability. Hidden
-          items don&apos;t appear on the customer ordering page.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
+            <i className="fa-solid fa-utensils" /> Menu Management
+          </p>
+          <h1 className="font-display mt-1 text-3xl font-bold text-[var(--color-primary)]">
+            Menu
+          </h1>
+          <p className="text-sm text-[var(--color-muted)]">
+            Manage categories, add new items, and toggle availability. Hidden
+            items don&apos;t appear on the customer ordering page.
+          </p>
+        </div>
+        <Link
+          href="/admin/menu/import"
+          className="inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)] bg-white px-4 py-2 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white"
+        >
+          <i className="fa-solid fa-file-csv" /> Bulk import (CSV)
+        </Link>
       </header>
 
       <CategoriesSection categories={categoryList} />

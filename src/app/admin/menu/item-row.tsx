@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import Link from "next/link";
 import {
   deleteMenuItem,
   toggleMenuItemAvailability,
@@ -48,6 +49,13 @@ export function ItemRow({ id, name, price, isAvailable, description }: Props) {
       </td>
       <td className="px-6 py-3 text-right">
         <div className="flex justify-end gap-2">
+          <Link
+            href={`/admin/menu/${id}`}
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--color-line)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary-50)]"
+          >
+            <i className="fa-solid fa-receipt" />
+            Recipe
+          </Link>
           <button
             disabled={pending}
             onClick={() =>

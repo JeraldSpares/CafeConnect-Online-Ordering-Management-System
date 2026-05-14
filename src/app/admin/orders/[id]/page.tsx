@@ -54,13 +54,22 @@ export default async function OrderDetailPage({
         >
           <i className="fa-solid fa-arrow-left" /> Back to orders
         </Link>
-        <Link
-          href={`/receipt/${id}`}
-          target="_blank"
-          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
-        >
-          <i className="fa-solid fa-print" /> Print receipt
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/kitchen-ticket/${id}`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+          >
+            <i className="fa-solid fa-utensils" /> Kitchen ticket
+          </Link>
+          <Link
+            href={`/receipt/${id}`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)] hover:text-white"
+          >
+            <i className="fa-solid fa-print" /> Receipt
+          </Link>
+        </div>
       </div>
 
       <header className="cc-card flex flex-wrap items-end justify-between gap-3 p-6">

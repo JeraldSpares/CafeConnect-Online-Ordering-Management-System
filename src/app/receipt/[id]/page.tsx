@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { peso, formatDateTime } from "@/lib/format";
 import { BrandLogo } from "@/components/brand-logo";
+import { loadSettings } from "@/lib/app-settings";
 import { PrintTrigger } from "./print-trigger";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +60,14 @@ export default async function ReceiptPage({
       .reduce((s, p) => s + Number(p.amount), 0) ?? 0;
   const balance = Number(order.total) - paid;
 
+  const settings = await loadSettings();
+  // VAT breakdown — total is treated as VAT-inclusive (Philippine standard).
+  // Net = total / (1 + rate); VAT = total - net.
+  const total = Number(order.total);
+  const vatRate = settings.vat_rate || 0.12;
+  const netSales = total > 0 ? total / (1 + vatRate) : 0;
+  const vatAmount = total - netSales;
+
   return (
     <>
       <style>{`
@@ -97,7 +106,7 @@ export default async function ReceiptPage({
               className="mt-2 text-[10px] uppercase tracking-[0.3em] text-[var(--color-accent)]"
               style={{ fontFamily: "var(--font-display), serif" }}
             >
-              Hebrews Kape
+              {settings.business_name}
             </p>
             <h1
               className="mt-0.5 text-lg font-bold"
@@ -105,6 +114,12 @@ export default async function ReceiptPage({
             >
               Official Receipt
             </h1>
+            <p className="mt-1 text-[9px] tracking-wider text-white/70">
+              {settings.business_address}
+            </p>
+            <p className="text-[9px] tracking-wider text-white/70">
+              TIN: {settings.business_tin}
+            </p>
             {/* Notched edge under header */}
             <div className="absolute inset-x-0 bottom-0 h-3 translate-y-1/2">
               <div className="relative h-full bg-white">
@@ -176,7 +191,7 @@ export default async function ReceiptPage({
 
             <Divider />
 
-            {/* Totals */}
+            {/* Totals + VAT breakdown */}
             <dl className="space-y-1 text-xs">
               <Row label="Subtotal">{peso.format(Number(order.subtotal))}</Row>
               {Number(order.discount) > 0 && (
@@ -184,6 +199,12 @@ export default async function ReceiptPage({
                   − {peso.format(Number(order.discount))}
                 </Row>
               )}
+              <Row label={`VATable Sales`}>
+                {peso.format(netSales)}
+              </Row>
+              <Row label={`VAT (${Math.round(vatRate * 100)}%)`}>
+                {peso.format(vatAmount)}
+              </Row>
             </dl>
 
             <div className="mt-3 rounded-xl bg-[var(--color-primary)] px-4 py-3 text-white shadow-sm">

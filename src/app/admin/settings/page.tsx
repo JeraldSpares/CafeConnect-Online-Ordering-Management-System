@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { ProfileForms } from "./profile-forms";
+import { BusinessSettingsForm } from "./business-form";
+import { loadSettings } from "@/lib/app-settings";
 
 export const dynamic = "force-dynamic";
 
@@ -82,6 +84,13 @@ export default async function SettingsPage() {
           email: user.email ?? "",
         }}
       />
+
+      {profile?.role === "admin" && (
+        <BusinessSettingsForm
+          id="goal"
+          defaults={await loadSettings()}
+        />
+      )}
     </div>
   );
 }

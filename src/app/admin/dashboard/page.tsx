@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { peso, formatDateTime } from "@/lib/format";
 import { Donut, HourlyBars, Sparkline } from "@/components/charts";
+import { loadSettings } from "@/lib/app-settings";
+import { RevenueGoalCard } from "./revenue-goal";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,20 @@ export default async function DashboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const settings = await loadSettings();
+
+  // Monthly revenue accumulated so far
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  monthStart.setHours(0, 0, 0, 0);
+  const { data: monthlyPaid } = await supabase
+    .from("transactions")
+    .select("amount")
+    .eq("status", "paid")
+    .gte("created_at", monthStart.toISOString());
+  const revenueThisMonth =
+    monthlyPaid?.reduce((s, t) => s + Number(t.amount), 0) ?? 0;
 
   const [
     { data: profile },
@@ -332,6 +348,9 @@ export default async function DashboardPage() {
           href="/admin/customers"
         />
       </section>
+
+      {/* REVENUE GOAL */}
+      <RevenueGoalCard goal={settings.revenue_goal_monthly} earned={revenueThisMonth} />
 
       {/* CHARTS ROW */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">

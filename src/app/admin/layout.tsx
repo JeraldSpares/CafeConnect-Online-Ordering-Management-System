@@ -9,8 +9,12 @@ const NAV_LINKS = [
   { href: "/admin/menu",        label: "Menu",        icon: "fa-utensils" },
   { href: "/admin/inventory",   label: "Inventory",   icon: "fa-boxes-stacked" },
   { href: "/admin/customers",   label: "Customers",   icon: "fa-users" },
+  { href: "/admin/discounts",   label: "Discounts",   icon: "fa-tags" },
   { href: "/admin/reports",     label: "Reports",     icon: "fa-chart-line" },
+  { href: "/admin/shifts",      label: "Shifts",      icon: "fa-clock" },
   { href: "/admin/audit-logs",  label: "Audit Logs",  icon: "fa-shield-halved" },
+  { href: "/admin/about",       label: "About",       icon: "fa-circle-info" },
+  { href: "/admin/dev",         label: "Dev Tools",   icon: "fa-flask" },
   { href: "/admin/settings",    label: "Settings",    icon: "fa-user-gear" },
 ];
 
