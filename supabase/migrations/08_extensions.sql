@@ -27,12 +27,14 @@ create policy "app_settings: staff write"
   using (public.is_staff()) with check (public.is_staff());
 
 -- Seed reasonable defaults
+-- Note: string literals must be cast to text — to_jsonb() is polymorphic
+-- and can't resolve a type from a bare 'unknown' string literal.
 insert into public.app_settings (key, value) values
   ('revenue_goal_monthly',    to_jsonb(30000)),
   ('demo_mode',               to_jsonb(false)),
-  ('business_name',           to_jsonb('Hebrews Kape')),
-  ('business_tin',            to_jsonb('000-000-000-000')),
-  ('business_address',        to_jsonb('Cabanatuan City, Nueva Ecija')),
+  ('business_name',           to_jsonb('Hebrews Kape'::text)),
+  ('business_tin',            to_jsonb('000-000-000-000'::text)),
+  ('business_address',        to_jsonb('Cabanatuan City, Nueva Ecija'::text)),
   ('vat_rate',                to_jsonb(0.12)),
   ('loyalty_threshold',       to_jsonb(10))
 on conflict (key) do nothing;
@@ -328,7 +330,7 @@ declare
   v_threshold int := 10;
   v_cust_id uuid;
   v_cust_name text;
-  v_paid bigint;
+  v_paid bigint := 0;
 begin
   v_phone_clean := regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g');
   if length(v_phone_clean) < 7 then
@@ -358,7 +360,7 @@ begin
     return;
   end if;
 
-  -- Count paid completed orders
+  -- Count paid completed orders (count(*) returns bigint and is never null)
   select count(*)
     into v_paid
     from public.orders o
@@ -367,10 +369,8 @@ begin
      and tx.status = 'paid'
      and o.status = 'completed';
 
-  full_name    := v_cust_name;
-  paid_orders  := coalesce(v_paid, 0);
-  next_free_at := v_threshold;
-  return next;
+  -- Return the single row via a typed SELECT.
+  return query select v_cust_name, v_paid, v_threshold;
 end;
 $$;
 
