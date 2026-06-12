@@ -1,4 +1,4 @@
--- CafeConnect: initial schema
+-- Sulyap: initial schema
 -- Maps to the 5 capstone modules:
 --   1. Online ordering (orders, order_items)
 --   2. Sales & transactions (transactions)

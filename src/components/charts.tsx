@@ -1,4 +1,4 @@
-// Lightweight, dependency-free SVG charts tailored for the CafeConnect dashboard.
+// Lightweight, dependency-free SVG charts tailored for the Sulyap dashboard.
 
 export type LineSeries = {
   label: string;

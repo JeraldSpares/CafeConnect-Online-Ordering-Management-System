@@ -3,7 +3,7 @@ import { Resend } from "resend";
 
 const apiKey = process.env.RESEND_API_KEY;
 const fromAddress =
-  process.env.EMAIL_FROM || "CafeConnect <onboarding@resend.dev>";
+  process.env.EMAIL_FROM || "Sulyap <onboarding@resend.dev>";
 const adminAddress = process.env.ADMIN_EMAIL || "";
 const enabled = !!apiKey;
 const resend = enabled ? new Resend(apiKey) : null;
@@ -80,7 +80,7 @@ function wrap(content: string, preview = "") {
             <div style="display:inline-grid; place-items:center; width:48px; height:48px; background:#c79862; border-radius:50%; margin-bottom:10px;">
               <span style="font-size:22px;">☕</span>
             </div>
-            <p style="margin:0; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#c79862;">CafeConnect</p>
+            <p style="margin:0; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#c79862;">Sulyap</p>
             <h1 style="margin:4px 0 0; font-family:Georgia, serif; font-size:22px; font-weight:700;">Hebrew's Cafe</h1>
           </td>
         </tr>
@@ -88,7 +88,7 @@ function wrap(content: string, preview = "") {
         <tr>
           <td style="padding:18px 32px; background:#fbf3e7; text-align:center; color:#5b4f44; font-size:12px;">
             Thank you for choosing Hebrew's Cafe ☕<br/>
-            <span style="opacity:.6;">Sent by CafeConnect</span>
+            <span style="opacity:.6;">Sent by Sulyap</span>
           </td>
         </tr>
       </table>

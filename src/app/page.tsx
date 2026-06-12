@@ -107,7 +107,7 @@ export default function HomePage() {
         >
           <BrandLogo size={56} priority />
           <span className="font-display text-xl font-bold tracking-tight">
-            CafeConnect
+            Sulyap
           </span>
         </Link>
         <nav className="flex items-center gap-2">
@@ -443,7 +443,7 @@ export default function HomePage() {
           <span>© {new Date().getFullYear()} Hebrew&apos;s Cafe</span>
           <span className="flex items-center gap-1">
             Powered by{" "}
-            <strong className="text-[var(--color-primary)]">CafeConnect</strong>
+            <strong className="text-[var(--color-primary)]">Sulyap</strong>
           </span>
         </div>
       </footer>

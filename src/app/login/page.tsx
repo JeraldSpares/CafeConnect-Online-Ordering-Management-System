@@ -122,7 +122,7 @@ export default function LoginPage() {
             <BrandLogo size={112} priority />
           </Link>
           <p className="mt-4 text-[10px] uppercase tracking-widest text-[var(--color-accent)]">
-            CafeConnect
+            Sulyap
           </p>
           <h1 className="font-display text-2xl font-bold text-[var(--color-primary)]">
             Staff Sign In

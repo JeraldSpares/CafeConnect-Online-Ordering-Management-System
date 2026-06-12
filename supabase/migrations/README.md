@@ -1,4 +1,4 @@
-# CafeConnect — Supabase migrations
+# Sulyap — Supabase migrations
 
 Run these files **in numeric order** in the **Supabase SQL Editor**
 (Dashboard → SQL Editor → New query → paste → **Run**).
@@ -15,7 +15,7 @@ Run these files **in numeric order** in the **Supabase SQL Editor**
 
 ## Migrating between Supabase projects
 
-If you're moving CafeConnect to a new Supabase project:
+If you're moving Sulyap to a new Supabase project:
 
 1. Create the project at <https://supabase.com/dashboard>
 2. Run the migrations above **in order**

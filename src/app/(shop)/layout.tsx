@@ -22,7 +22,7 @@ export default function ShopLayout({
             >
               <BrandLogo size={52} priority />
               <span className="font-display text-lg font-bold tracking-tight">
-                CafeConnect
+                Sulyap
               </span>
             </Link>
             <nav className="flex items-center gap-1 text-sm">
@@ -63,7 +63,7 @@ export default function ShopLayout({
             </div>
             <span>
               Powered by{" "}
-              <strong className="text-[var(--color-primary)]">CafeConnect</strong>
+              <strong className="text-[var(--color-primary)]">Sulyap</strong>
             </span>
           </div>
         </footer>

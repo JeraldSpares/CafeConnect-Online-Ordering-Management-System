@@ -1,6 +1,6 @@
-# CafeConnect — Setup Guide
+# Sulyap — Setup Guide
 
-CafeConnect is a Next.js 16 + Supabase + Tailwind 4 stack. The customer-facing
+Sulyap is a Next.js 16 + Supabase + Tailwind 4 stack. The customer-facing
 ordering site and the admin portal both run from the same app.
 
 ## 1. Prerequisites
@@ -33,7 +33,7 @@ RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxx
 # The sender address. While testing, you may use the default Resend
 # domain shown below. For production, verify your own domain in Resend
 # and replace this with something like "Hebrew's Cafe <orders@yourdomain.com>".
-EMAIL_FROM=CafeConnect <onboarding@resend.dev>
+EMAIL_FROM=Sulyap <onboarding@resend.dev>
 
 # Where new-order notifications are sent (typically the café owner).
 ADMIN_EMAIL=owner@example.com
@@ -70,6 +70,10 @@ You only need to run this once per Supabase project.
 
 A seeded admin user exists in the schema (`admin@cafeconnect.local` / `CafeConnect2026!`).
 You can change credentials via the Supabase dashboard → Auth.
+
+> Brand note: the system was renamed to **Sulyap** but the seeded admin
+> email kept its original `@cafeconnect.local` value so existing local
+> setups keep working without re-seeding.
 
 ## 6. Adding menu item photos
 

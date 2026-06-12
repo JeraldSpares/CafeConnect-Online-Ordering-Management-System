@@ -80,7 +80,7 @@ export async function GET(req: Request) {
     .map((r) => r.map(escape).join(","))
     .join("\n");
 
-  const fileName = `cafeconnect-sales-${days}d-${new Date()
+  const fileName = `sulyap-sales-${days}d-${new Date()
     .toISOString()
     .slice(0, 10)}.csv`;
 

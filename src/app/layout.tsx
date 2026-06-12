@@ -31,8 +31,8 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CafeConnect | Hebrews Kape",
-  description: "Online ordering and management system for Hebrews Kape.",
+  title: "Sulyap | Hebrews Kape",
+  description: "Sulyap — online ordering and management system for Hebrews Kape.",
 };
 
 export default function RootLayout({

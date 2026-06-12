@@ -15,7 +15,7 @@ type Notification = {
   at: string;
 };
 
-const STORAGE_LAST_SEEN = "cafeconnect.bell.lastSeen.v1";
+const STORAGE_LAST_SEEN = "sulyap.bell.lastSeen.v1";
 const MAX_NOTIFS = 20;
 
 export function NotificationsBell() {

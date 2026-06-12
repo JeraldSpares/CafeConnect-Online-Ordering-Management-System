@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const STORAGE_KEY = "cafeconnect.chat.v1";
+const STORAGE_KEY = "sulyap.chat.v1";
 const WELCOME: Msg = {
   role: "assistant",
   content:

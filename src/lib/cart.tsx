@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 
-const STORAGE_KEY = "cafeconnect.cart.v1";
+const STORAGE_KEY = "sulyap.cart.v1";
 
 export type CartLine = {
   menu_item_id: string;

@@ -1,4 +1,4 @@
--- CafeConnect — feature extensions
+-- Sulyap — feature extensions
 -- Adds: discount codes, recipe linking (auto inventory deduction),
 -- staff shift tracking, key/value app settings.
 

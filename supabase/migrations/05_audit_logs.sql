@@ -1,4 +1,4 @@
--- CafeConnect: audit_logs table
+-- Sulyap: audit_logs table
 --
 -- Run this once in your Supabase SQL Editor.
 -- The application's logging helper (src/lib/audit.ts) silently no-ops if
