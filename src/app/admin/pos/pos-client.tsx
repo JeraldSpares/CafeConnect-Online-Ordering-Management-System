@@ -1,10 +1,14 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { peso } from "@/lib/format";
 import { useToast } from "@/lib/toast";
-import { posCreateOrder } from "./actions";
+import {
+  applyDiscountAction,
+  lookupCustomerByPhone,
+  posCreateOrder,
+} from "./actions";
 
 type Category = { id: string; name: string; sort_order: number };
 type Item = {
@@ -16,13 +20,16 @@ type Item = {
   is_available: boolean;
 };
 type Line = { id: string; name: string; price: number; qty: number };
+type StockStatus = "ok" | "low" | "out";
 
 function iconFor(name: string): string {
   const n = name.toLowerCase();
-  if (/espresso|americano|cappuccino|latte|coffee|brew|mocha/.test(n)) return "fa-mug-hot";
+  if (/espresso|americano|cappuccino|latte|coffee|brew|mocha/.test(n))
+    return "fa-mug-hot";
   if (/iced|cold|frappe|frappuccino|smoothie/.test(n)) return "fa-glass-water";
   if (/tea/.test(n)) return "fa-leaf";
-  if (/croissant|pastry|muffin|cake|bread|donut|sandwich/.test(n)) return "fa-cookie-bite";
+  if (/croissant|pastry|muffin|cake|bread|donut|sandwich/.test(n))
+    return "fa-cookie-bite";
   if (/juice/.test(n)) return "fa-glass-citrus";
   return "fa-mug-saucer";
 }
@@ -30,9 +37,11 @@ function iconFor(name: string): string {
 export function PosClient({
   categories,
   items,
+  stockMap,
 }: {
   categories: Category[];
   items: Item[];
+  stockMap: Record<string, StockStatus>;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -47,8 +56,29 @@ export function PosClient({
   const [orderType, setOrderType] = useState<"dine_in" | "takeaway">("dine_in");
   const [notes, setNotes] = useState("");
 
+  // Discount state
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    amount: number;
+    id: string | null;
+    description: string | null;
+  } | null>(null);
+  const [discountChecking, setDiscountChecking] = useState(false);
+
+  // Customer-by-phone lookup (loyalty + autofill)
+  const [loyalty, setLoyalty] = useState<{
+    fullName: string | null;
+    paidOrders: number;
+    nextFreeAt: number;
+    suggestionApplied: boolean;
+  } | null>(null);
+  const phoneLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [collect, setCollect] = useState(true);
-  const [method, setMethod] = useState<"cash" | "gcash" | "maya" | "card">("cash");
+  const [method, setMethod] = useState<"cash" | "gcash" | "maya" | "card">(
+    "cash",
+  );
   const [tendered, setTendered] = useState<string>("");
   const [reference, setReference] = useState("");
 
@@ -65,9 +95,71 @@ export function PosClient({
   }, [items, search, activeCat]);
 
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
+  const discountAmount = appliedDiscount?.amount ?? 0;
+  const total = Math.max(0, subtotal - discountAmount);
   const tenderedNum = Number(tendered);
   const change =
-    method === "cash" && tendered ? Math.max(0, tenderedNum - subtotal) : 0;
+    method === "cash" && tendered ? Math.max(0, tenderedNum - total) : 0;
+
+  // Debounced phone -> loyalty lookup. Fires on every keystroke but only
+  // hits the server when the input settles for 400ms AND has 7+ digits.
+  useEffect(() => {
+    if (phoneLookupTimer.current) clearTimeout(phoneLookupTimer.current);
+    phoneLookupTimer.current = setTimeout(async () => {
+      const cleaned = phone.replace(/[^0-9]/g, "");
+      if (cleaned.length < 7) {
+        setLoyalty(null);
+        return;
+      }
+      const res = await lookupCustomerByPhone(phone);
+      if (!res.match) {
+        setLoyalty(null);
+        return;
+      }
+      setLoyalty((prev) => ({
+        fullName: res.fullName ?? null,
+        paidOrders: res.paidOrders ?? 0,
+        nextFreeAt: res.nextFreeAt ?? 10,
+        suggestionApplied: prev?.suggestionApplied ?? false,
+      }));
+    }, 400);
+    return () => {
+      if (phoneLookupTimer.current) clearTimeout(phoneLookupTimer.current);
+    };
+  }, [phone]);
+
+  // Discount can become invalid if subtotal drops below min_order_total
+  // after items are removed. Re-validate whenever subtotal changes.
+  useEffect(() => {
+    if (!appliedDiscount) return;
+    if (subtotal === 0) {
+      setAppliedDiscount(null);
+      return;
+    }
+    // Recalculate against current subtotal — the server is the source of truth.
+    let cancelled = false;
+    (async () => {
+      const res = await applyDiscountAction(appliedDiscount.code, subtotal);
+      if (cancelled) return;
+      if (!res.ok) {
+        setAppliedDiscount(null);
+        toast.info("Discount removed — order no longer qualifies.");
+      } else if (res.amount !== appliedDiscount.amount) {
+        setAppliedDiscount({
+          code: res.code ?? appliedDiscount.code,
+          amount: res.amount ?? 0,
+          id: res.discountId ?? appliedDiscount.id,
+          description: res.description ?? appliedDiscount.description,
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // We intentionally key on subtotal only — re-evaluating on every code edit
+    // would thrash the network.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal]);
 
   function addItem(item: Item) {
     setLines((prev) => {
@@ -85,7 +177,9 @@ export function PosClient({
   }
   function setQty(id: string, qty: number) {
     setLines((prev) =>
-      qty <= 0 ? prev.filter((l) => l.id !== id) : prev.map((l) => (l.id === id ? { ...l, qty } : l)),
+      qty <= 0
+        ? prev.filter((l) => l.id !== id)
+        : prev.map((l) => (l.id === id ? { ...l, qty } : l)),
     );
   }
   function reset() {
@@ -98,6 +192,43 @@ export function PosClient({
     setCollect(true);
     setMethod("cash");
     setOrderType("dine_in");
+    setDiscountCode("");
+    setAppliedDiscount(null);
+    setLoyalty(null);
+  }
+
+  async function applyDiscount() {
+    const code = discountCode.trim();
+    if (!code) {
+      toast.error("Enter a code first.");
+      return;
+    }
+    setDiscountChecking(true);
+    const res = await applyDiscountAction(code, subtotal);
+    setDiscountChecking(false);
+    if (!res.ok) {
+      toast.error(res.error ?? "Invalid discount.");
+      return;
+    }
+    setAppliedDiscount({
+      code: res.code ?? code,
+      amount: res.amount ?? 0,
+      id: res.discountId ?? null,
+      description: res.description ?? null,
+    });
+    toast.success(`Discount applied: -${peso.format(res.amount ?? 0)}`);
+  }
+
+  function clearDiscount() {
+    setDiscountCode("");
+    setAppliedDiscount(null);
+  }
+
+  function applyLoyaltyName() {
+    if (loyalty?.fullName) {
+      setCustomer(loyalty.fullName);
+      setLoyalty({ ...loyalty, suggestionApplied: true });
+    }
   }
 
   function submit() {
@@ -105,10 +236,19 @@ export function PosClient({
       toast.error("Add items first.");
       return;
     }
-    if (collect && method === "cash" && tenderedNum < subtotal) {
+    if (collect && method === "cash" && tenderedNum < total) {
       toast.error("Cash tendered is less than total.");
       return;
     }
+    // Soft warn if any line item is flagged out-of-stock by the recipe rollup.
+    const outOfStock = lines.find((l) => stockMap[l.id] === "out");
+    if (outOfStock) {
+      const ok = window.confirm(
+        `"${outOfStock.name}" looks low/out of an ingredient. Place order anyway?`,
+      );
+      if (!ok) return;
+    }
+
     startTransition(async () => {
       const res = await posCreateOrder({
         customer_name: customer,
@@ -116,10 +256,17 @@ export function PosClient({
         order_type: orderType,
         notes,
         items: lines.map((l) => ({ menu_item_id: l.id, quantity: l.qty })),
+        discount: appliedDiscount
+          ? {
+              code: appliedDiscount.code,
+              amount: appliedDiscount.amount,
+              id: appliedDiscount.id,
+            }
+          : undefined,
         payment: collect
           ? {
               method,
-              amount: subtotal,
+              amount: total,
               reference,
             }
           : undefined,
@@ -190,23 +337,36 @@ export function PosClient({
               data-stagger
               className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
             >
-              {filtered.map((it) => (
-                <button
-                  key={it.id}
-                  onClick={() => addItem(it)}
-                  className="cc-card cc-card-hover group flex flex-col items-center p-4 text-center transition-transform active:scale-95"
-                >
-                  <span className="grid h-16 w-16 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)] transition-transform group-hover:scale-110">
-                    <i className={`fa-solid ${iconFor(it.name)} text-2xl`} />
-                  </span>
-                  <p className="mt-3 line-clamp-2 text-sm font-semibold text-[var(--color-primary)]">
-                    {it.name}
-                  </p>
-                  <p className="font-display mt-1 text-base font-bold text-[var(--color-accent)]">
-                    {peso.format(Number(it.price))}
-                  </p>
-                </button>
-              ))}
+              {filtered.map((it) => {
+                const stock = stockMap[it.id] ?? "ok";
+                return (
+                  <button
+                    key={it.id}
+                    onClick={() => addItem(it)}
+                    className="cc-card cc-card-hover group relative flex flex-col items-center p-4 text-center transition-transform active:scale-95"
+                  >
+                    {stock !== "ok" && (
+                      <span
+                        title={stock === "out" ? "Out of stock" : "Low stock"}
+                        className={`absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-white ${
+                          stock === "out"
+                            ? "bg-[var(--color-danger)] animate-pulse"
+                            : "bg-[var(--color-accent)]"
+                        }`}
+                      />
+                    )}
+                    <span className="grid h-16 w-16 place-items-center rounded-full bg-[var(--color-primary)] text-[var(--color-accent)] transition-transform group-hover:scale-110">
+                      <i className={`fa-solid ${iconFor(it.name)} text-2xl`} />
+                    </span>
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold text-[var(--color-primary)]">
+                      {it.name}
+                    </p>
+                    <p className="font-display mt-1 text-base font-bold text-[var(--color-accent)]">
+                      {peso.format(Number(it.price))}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -239,6 +399,31 @@ export function PosClient({
                 className="cc-input !py-2 text-sm"
               />
             </div>
+
+            {/* Customer + loyalty preview */}
+            {loyalty && (
+              <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-primary-50)] px-3 py-2 text-xs">
+                {loyalty.fullName && !loyalty.suggestionApplied && (
+                  <button
+                    onClick={applyLoyaltyName}
+                    className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-1 font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white"
+                  >
+                    <i className="fa-solid fa-user-check" /> Use &quot;
+                    {loyalty.fullName}&quot;
+                  </button>
+                )}
+                {loyalty.fullName && loyalty.suggestionApplied && (
+                  <span className="inline-flex items-center gap-1 font-semibold text-[var(--color-primary)]">
+                    <i className="fa-solid fa-circle-check" /> Returning customer
+                  </span>
+                )}
+                <LoyaltyStamps
+                  paid={loyalty.paidOrders}
+                  goal={loyalty.nextFreeAt}
+                />
+              </div>
+            )}
+
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button
                 onClick={() => setOrderType("dine_in")}
@@ -269,41 +454,49 @@ export function PosClient({
               </p>
             ) : (
               <ul className="mt-4 space-y-2">
-                {lines.map((l) => (
-                  <li
-                    key={l.id}
-                    className="flex items-center gap-2 rounded-lg border border-[var(--color-line)] bg-white p-2"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-medium text-[var(--color-primary)]">
-                        {l.name}
-                      </p>
-                      <p className="text-xs text-[var(--color-muted)]">
-                        {peso.format(l.price)} each
-                      </p>
-                    </div>
-                    <div className="inline-flex items-center overflow-hidden rounded-full border border-[var(--color-line)]">
-                      <button
-                        onClick={() => setQty(l.id, l.qty - 1)}
-                        className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
-                      >
-                        <i className="fa-solid fa-minus text-xs" />
-                      </button>
-                      <span className="w-7 text-center text-xs font-bold">
-                        {l.qty}
+                {lines.map((l) => {
+                  const stock = stockMap[l.id] ?? "ok";
+                  return (
+                    <li
+                      key={l.id}
+                      className="flex items-center gap-2 rounded-lg border border-[var(--color-line)] bg-white p-2"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate text-sm font-medium text-[var(--color-primary)]">
+                          {l.name}
+                          {stock === "out" && (
+                            <span className="ml-1 text-[10px] font-bold uppercase text-[var(--color-danger)]">
+                              · low/out
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-[var(--color-muted)]">
+                          {peso.format(l.price)} each
+                        </p>
+                      </div>
+                      <div className="inline-flex items-center overflow-hidden rounded-full border border-[var(--color-line)]">
+                        <button
+                          onClick={() => setQty(l.id, l.qty - 1)}
+                          className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                        >
+                          <i className="fa-solid fa-minus text-xs" />
+                        </button>
+                        <span className="w-7 text-center text-xs font-bold">
+                          {l.qty}
+                        </span>
+                        <button
+                          onClick={() => setQty(l.id, l.qty + 1)}
+                          className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                        >
+                          <i className="fa-solid fa-plus text-xs" />
+                        </button>
+                      </div>
+                      <span className="w-16 text-right text-sm font-bold text-[var(--color-primary)]">
+                        {peso.format(l.price * l.qty)}
                       </span>
-                      <button
-                        onClick={() => setQty(l.id, l.qty + 1)}
-                        className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
-                      >
-                        <i className="fa-solid fa-plus text-xs" />
-                      </button>
-                    </div>
-                    <span className="w-16 text-right text-sm font-bold text-[var(--color-primary)]">
-                      {peso.format(l.price * l.qty)}
-                    </span>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
 
@@ -314,6 +507,66 @@ export function PosClient({
               placeholder="Special instructions (optional)"
               className="cc-input mt-4 text-sm"
             />
+
+            {/* Discount code */}
+            <div className="mt-4 rounded-xl border border-[var(--color-line)] p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+                <i className="fa-solid fa-tags mr-1" /> Discount code
+              </p>
+              {appliedDiscount ? (
+                <div className="mt-2 flex items-center justify-between rounded-lg bg-[var(--color-success-bg)] px-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <p className="font-bold text-[var(--color-success)]">
+                      <i className="fa-solid fa-circle-check mr-1" />
+                      {appliedDiscount.code}
+                    </p>
+                    {appliedDiscount.description && (
+                      <p className="truncate text-xs text-[var(--color-muted)]">
+                        {appliedDiscount.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-[var(--color-success)]">
+                      -{peso.format(appliedDiscount.amount)}
+                    </span>
+                    <button
+                      onClick={clearDiscount}
+                      className="grid h-6 w-6 place-items-center rounded-full text-[var(--color-muted)] hover:bg-white hover:text-[var(--color-danger)]"
+                      aria-label="Remove discount"
+                    >
+                      <i className="fa-solid fa-xmark text-xs" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={discountCode}
+                    onChange={(e) => setDiscountCode(e.target.value)}
+                    placeholder="Enter code"
+                    className="cc-input !py-2 flex-1 text-sm uppercase tracking-wider"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyDiscount();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={applyDiscount}
+                    disabled={discountChecking || subtotal === 0}
+                    className="rounded-md border-2 border-[var(--color-primary)] bg-white px-3 py-2 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-50"
+                  >
+                    {discountChecking ? (
+                      <i className="fa-solid fa-spinner fa-spin" />
+                    ) : (
+                      "Apply"
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="mt-4 rounded-xl border border-[var(--color-line)] p-3">
               <label className="flex items-center gap-2 text-sm font-medium text-[var(--color-primary)]">
@@ -374,10 +627,23 @@ export function PosClient({
           </div>
 
           <footer className="border-t border-[var(--color-line)] bg-[var(--color-primary-50)] px-6 py-4">
+            {discountAmount > 0 && (
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-[var(--color-muted)]">
+                  Subtotal · Discount
+                </span>
+                <span className="text-[var(--color-muted)]">
+                  {peso.format(subtotal)} ·{" "}
+                  <span className="font-semibold text-[var(--color-success)]">
+                    -{peso.format(discountAmount)}
+                  </span>
+                </span>
+              </div>
+            )}
             <div className="flex items-end justify-between">
               <span className="text-sm text-[var(--color-muted)]">Total</span>
               <span className="font-display text-3xl font-bold text-[var(--color-primary)]">
-                {peso.format(subtotal)}
+                {peso.format(total)}
               </span>
             </div>
             <div className="mt-3 flex gap-2">
@@ -434,5 +700,37 @@ function CatChip({
       <i className={`fa-solid ${icon}`} />
       {label}
     </button>
+  );
+}
+
+function LoyaltyStamps({ paid, goal }: { paid: number; goal: number }) {
+  const safeGoal = Math.max(1, goal);
+  const inCycle = paid % safeGoal;
+  const stamps = Array.from({ length: safeGoal }, (_, i) => i < inCycle);
+  const filled = inCycle;
+  const earnedFree = paid > 0 && paid % safeGoal === 0;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex gap-0.5">
+        {stamps.map((on, i) => (
+          <span
+            key={i}
+            className={`grid h-4 w-4 place-items-center rounded-full border ${
+              on
+                ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-white"
+                : "border-[var(--color-line)] bg-white text-[var(--color-line)]"
+            }`}
+          >
+            <i className="fa-solid fa-mug-hot text-[7px]" />
+          </span>
+        ))}
+      </div>
+      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-primary)]">
+        {earnedFree
+          ? "🎁 free coffee earned"
+          : `${filled} / ${safeGoal} stamps`}
+      </span>
+    </div>
   );
 }
