@@ -16,11 +16,10 @@ export type PosOrderInput = {
   table_label?: string;
   notes?: string;
   items: { menu_item_id: string; quantity: number; notes?: string }[];
-  discount?: {
-    code: string;
-    amount: number;
-    id: string | null;
-  };
+  // Only the code is trusted from the client — the amount and the
+  // discounts.id row are re-resolved on the server so a tampered
+  // client can't bolt a fake 100%-off code onto the order.
+  discount?: { code: string };
   // Multiple payment splits — empty array means "don't collect now".
   payments?: PosPaymentSplit[];
 };
@@ -59,7 +58,9 @@ export async function posCreateOrder(input: PosOrderInput) {
   }
 
   // Re-read the server-side subtotal to defend against client tampering,
-  // then apply the discount on top of it.
+  // then re-run apply_discount server-side. We ignore any amount/id the
+  // client passed — the only field we trust from input.discount is the
+  // code, and even that we re-validate via the RPC.
   let finalTotal = 0;
   {
     const { data: ord } = await supabase
@@ -70,21 +71,39 @@ export async function posCreateOrder(input: PosOrderInput) {
     const realSubtotal = Number(ord?.subtotal ?? 0);
     finalTotal = realSubtotal;
 
-    if (input.discount && input.discount.amount > 0) {
-      const safeDiscount = Math.min(
-        Math.max(0, input.discount.amount),
-        realSubtotal,
+    const code = input.discount?.code?.trim();
+    if (code && realSubtotal > 0) {
+      const { data: amt, error: discErr } = await supabase.rpc(
+        "apply_discount",
+        { p_code: code, p_subtotal: realSubtotal },
       );
-      finalTotal = realSubtotal - safeDiscount;
-      await supabase
-        .from("orders")
-        .update({
-          discount: safeDiscount,
-          discount_code: input.discount.code,
-          discount_id: input.discount.id,
-          total: finalTotal,
-        })
-        .eq("id", orderId);
+      const serverAmount = discErr ? 0 : Number(amt ?? 0);
+
+      if (serverAmount > 0) {
+        // Look up the canonical discount row server-side so the order's
+        // discount_id is pinned to a row we actually verified.
+        const { data: discRow } = await supabase
+          .from("discounts")
+          .select("id, code")
+          .ilike("code", code)
+          .maybeSingle();
+
+        const safeDiscount = Math.min(serverAmount, realSubtotal);
+        finalTotal = realSubtotal - safeDiscount;
+        await supabase
+          .from("orders")
+          .update({
+            discount: safeDiscount,
+            discount_code: discRow?.code ?? code,
+            discount_id: discRow?.id ?? null,
+            total: finalTotal,
+          })
+          .eq("id", orderId);
+      }
+      // If serverAmount is 0 we silently drop the discount — the client
+      // got a stale code (expired, used up, fell below min_order_total
+      // after the cart shrank, etc.). The order still goes through at
+      // full price; that's the safer of the two failure modes.
     }
   }
 

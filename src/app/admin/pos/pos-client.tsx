@@ -432,13 +432,7 @@ export function PosClient({
           quantity: l.qty,
           notes: l.notes?.trim() ? l.notes.trim() : undefined,
         })),
-        discount: appliedDiscount
-          ? {
-              code: appliedDiscount.code,
-              amount: appliedDiscount.amount,
-              id: appliedDiscount.id,
-            }
-          : undefined,
+        discount: appliedDiscount ? { code: appliedDiscount.code } : undefined,
         payments: paymentsPayload,
       });
       if (res.error && !res.orderId) {
