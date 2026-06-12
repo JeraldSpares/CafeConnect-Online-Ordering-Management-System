@@ -394,6 +394,7 @@ export type Database = {
           placed_by: string | null
           status: string
           subtotal: number
+          table_label: string | null
           total: number
         }
         Insert: {
@@ -410,6 +411,7 @@ export type Database = {
           placed_by?: string | null
           status?: string
           subtotal?: number
+          table_label?: string | null
           total?: number
         }
         Update: {
@@ -426,6 +428,7 @@ export type Database = {
           placed_by?: string | null
           status?: string
           subtotal?: number
+          table_label?: string | null
           total?: number
         }
         Relationships: [

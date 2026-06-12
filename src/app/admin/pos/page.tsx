@@ -11,6 +11,7 @@ export default async function PosPage() {
     { data: items },
     { data: recipes },
     { data: inventory },
+    { data: tableSetting },
   ] = await Promise.all([
     supabase
       .from("categories")
@@ -29,7 +30,14 @@ export default async function PosPage() {
     supabase
       .from("inventory_items")
       .select("id, stock_quantity, reorder_level"),
+    supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "table_count")
+      .maybeSingle(),
   ]);
+
+  const tableCount = Math.max(0, Number(tableSetting?.value ?? 0));
 
   // Join recipes ↔ inventory in JS — the Supabase type file has empty
   // Relationships, so a relational select fails at compile time.
@@ -67,6 +75,7 @@ export default async function PosPage() {
       categories={categories ?? []}
       items={items ?? []}
       stockMap={stockMap}
+      tableCount={tableCount}
     />
   );
 }

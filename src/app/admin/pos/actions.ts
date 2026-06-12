@@ -13,6 +13,7 @@ export type PosOrderInput = {
   customer_name: string;
   customer_phone?: string;
   order_type: "dine_in" | "takeaway";
+  table_label?: string;
   notes?: string;
   items: { menu_item_id: string; quantity: number; notes?: string }[];
   discount?: {
@@ -48,6 +49,14 @@ export async function posCreateOrder(input: PosOrderInput) {
 
   const orderId = row.out_order_id as string;
   const orderNumber = row.out_order_number as string;
+
+  // Stamp the table label if this was a dine-in order.
+  if (input.order_type === "dine_in" && input.table_label?.trim()) {
+    await supabase
+      .from("orders")
+      .update({ table_label: input.table_label.trim() })
+      .eq("id", orderId);
+  }
 
   // Re-read the server-side subtotal to defend against client tampering,
   // then apply the discount on top of it.

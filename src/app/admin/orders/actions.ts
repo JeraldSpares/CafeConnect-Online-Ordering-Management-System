@@ -61,7 +61,7 @@ export async function advanceOrderStatus(orderId: string, current: Status) {
   return { error: null };
 }
 
-export async function cancelOrder(orderId: string) {
+export async function cancelOrder(orderId: string, reason?: string) {
   const supabase = await createClient();
   const { error } = await supabase
     .from("orders")
@@ -77,11 +77,13 @@ export async function cancelOrder(orderId: string) {
     .eq("id", orderId)
     .single();
 
+  const trimmedReason = reason?.trim();
   void logAudit({
     action: "order.cancelled",
     entityType: "order",
     entityId: orderId,
     entityLabel: orderRow?.order_number ?? null,
+    metadata: trimmedReason ? { reason: trimmedReason } : null,
   });
 
   revalidatePath("/admin/orders");

@@ -85,10 +85,14 @@ export function OrderActions({
           <button
             disabled={pending}
             onClick={() => {
-              if (!confirm("Cancel this order?")) return;
+              const reason = window.prompt(
+                "Cancel this order? Briefly note why (logged to the audit trail):",
+                "",
+              );
+              if (reason === null) return; // user hit Cancel on the prompt
               setError(null);
               startTransition(async () => {
-                const res = await cancelOrder(orderId);
+                const res = await cancelOrder(orderId, reason);
                 if (res?.error) {
                   setError(res.error);
                   toast.error(res.error);

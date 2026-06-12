@@ -79,14 +79,23 @@ function saveHeld(list: HeldOrder[]) {
   }
 }
 
+type NumpadConfig = {
+  title: string;
+  value: string;
+  mode: "amount" | "integer";
+  onApply: (value: string) => void;
+};
+
 export function PosClient({
   categories,
   items,
   stockMap,
+  tableCount,
 }: {
   categories: Category[];
   items: Item[];
   stockMap: Record<string, StockStatus>;
+  tableCount: number;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -100,7 +109,9 @@ export function PosClient({
   const [customer, setCustomer] = useState("Walk-in");
   const [phone, setPhone] = useState("");
   const [orderType, setOrderType] = useState<"dine_in" | "takeaway">("dine_in");
+  const [tableLabel, setTableLabel] = useState<string>("");
   const [notes, setNotes] = useState("");
+  const [numpad, setNumpad] = useState<NumpadConfig | null>(null);
 
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
@@ -254,12 +265,14 @@ export function PosClient({
     setCollect(true);
     setMethod("cash");
     setOrderType("dine_in");
+    setTableLabel("");
     setDiscountCode("");
     setAppliedDiscount(null);
     setLoyalty(null);
     setSplitMode(false);
     setSplits([{ method: "cash", amount: 0, reference: "" }]);
     setExpandedNoteId(null);
+    setNumpad(null);
   }
 
   async function applyDiscount() {
@@ -411,6 +424,8 @@ export function PosClient({
         customer_name: customer,
         customer_phone: phone,
         order_type: orderType,
+        table_label:
+          orderType === "dine_in" && tableLabel ? tableLabel : undefined,
         notes,
         items: lines.map((l) => ({
           menu_item_id: l.id,
@@ -608,7 +623,10 @@ export function PosClient({
                 <i className="fa-solid fa-chair mr-1" /> Dine-in
               </button>
               <button
-                onClick={() => setOrderType("takeaway")}
+                onClick={() => {
+                  setOrderType("takeaway");
+                  setTableLabel("");
+                }}
                 className={`rounded-md border-2 px-3 py-2 text-xs font-semibold transition-colors ${
                   orderType === "takeaway"
                     ? "border-[var(--color-primary)] bg-[var(--color-primary-50)] text-[var(--color-primary)]"
@@ -618,6 +636,39 @@ export function PosClient({
                 <i className="fa-solid fa-bag-shopping mr-1" /> Takeaway
               </button>
             </div>
+
+            {/* Table picker (dine-in only) */}
+            {orderType === "dine_in" && tableCount > 0 && (
+              <div className="mt-3 rounded-xl border border-[var(--color-line)] p-3">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-muted)]">
+                  <i className="fa-solid fa-chair mr-1" /> Table
+                  {tableLabel && (
+                    <span className="ml-2 font-bold text-[var(--color-primary)]">
+                      · {tableLabel}
+                    </span>
+                  )}
+                </p>
+                <div className="mt-2 grid grid-cols-6 gap-1.5 sm:grid-cols-8">
+                  {Array.from({ length: tableCount }, (_, i) => {
+                    const label = String(i + 1);
+                    const active = tableLabel === label;
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => setTableLabel(active ? "" : label)}
+                        className={`rounded-md border-2 py-1.5 text-[11px] font-bold transition-colors ${
+                          active
+                            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white"
+                            : "border-[var(--color-line)] bg-white text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {lines.length === 0 ? (
               <p className="mt-6 text-center text-sm text-[var(--color-muted)]">
@@ -677,9 +728,23 @@ export function PosClient({
                           >
                             <i className="fa-solid fa-minus text-xs" />
                           </button>
-                          <span className="w-7 text-center text-xs font-bold">
+                          <button
+                            onClick={() =>
+                              setNumpad({
+                                title: `Quantity · ${l.name}`,
+                                value: String(l.qty),
+                                mode: "integer",
+                                onApply: (v) => {
+                                  const n = Math.max(0, Math.floor(Number(v) || 0));
+                                  setQty(l.id, n);
+                                },
+                              })
+                            }
+                            title="Tap to set exact qty"
+                            className="w-7 text-center text-xs font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                          >
                             {l.qty}
-                          </span>
+                          </button>
                           <button
                             onClick={() => setQty(l.id, l.qty + 1)}
                             className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
@@ -821,15 +886,31 @@ export function PosClient({
                     ))}
                   </div>
                   {method === "cash" ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={tendered}
-                      onChange={(e) => setTendered(e.target.value)}
-                      placeholder="Cash tendered"
-                      className="cc-input !py-2 text-sm"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={tendered}
+                        onChange={(e) => setTendered(e.target.value)}
+                        placeholder="Cash tendered"
+                        className="cc-input !py-2 flex-1 text-sm"
+                      />
+                      <button
+                        onClick={() =>
+                          setNumpad({
+                            title: "Cash tendered",
+                            value: tendered,
+                            mode: "amount",
+                            onApply: (v) => setTendered(v),
+                          })
+                        }
+                        className="grid h-10 w-10 place-items-center rounded-md border border-[var(--color-line)] bg-white text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                        aria-label="Open numpad"
+                      >
+                        <i className="fa-solid fa-calculator" />
+                      </button>
+                    </div>
                   ) : (
                     <input
                       value={reference}
@@ -997,6 +1078,14 @@ export function PosClient({
         </div>
       </aside>
 
+      {/* Numeric keypad modal */}
+      {numpad && (
+        <Numpad
+          config={numpad}
+          onClose={() => setNumpad(null)}
+        />
+      )}
+
       {/* Held orders panel */}
       {heldPanelOpen && (
         <div
@@ -1085,6 +1174,128 @@ function CatChip({
       <i className={`fa-solid ${icon}`} />
       {label}
     </button>
+  );
+}
+
+function Numpad({
+  config,
+  onClose,
+}: {
+  config: NumpadConfig;
+  onClose: () => void;
+}) {
+  const [local, setLocal] = useState(config.value || "");
+
+  function push(d: string) {
+    if (config.mode === "integer" && d === ".") return;
+    setLocal((prev) => {
+      if (d === "." && prev.includes(".")) return prev;
+      if (prev === "0" && d !== ".") return d;
+      return prev + d;
+    });
+  }
+  function back() {
+    setLocal((p) => p.slice(0, -1));
+  }
+  function clear() {
+    setLocal("");
+  }
+  function add(n: number) {
+    const cur = Number(local) || 0;
+    setLocal(String(cur + n));
+  }
+  function apply() {
+    config.onApply(local);
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="cc-card w-full max-w-xs p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="mb-3 flex items-center justify-between">
+          <h3 className="font-display text-base font-bold text-[var(--color-primary)]">
+            {config.title}
+          </h3>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)]"
+            aria-label="Close numpad"
+          >
+            <i className="fa-solid fa-xmark" />
+          </button>
+        </header>
+        <div className="rounded-lg border border-[var(--color-line)] bg-[var(--color-primary-50)] p-4 text-right">
+          <p className="font-mono text-3xl font-bold text-[var(--color-primary)]">
+            {config.mode === "amount" && "₱"}
+            {local || "0"}
+          </p>
+        </div>
+        {config.mode === "amount" && (
+          <div className="mt-3 grid grid-cols-4 gap-2">
+            {[20, 50, 100, 500].map((n) => (
+              <button
+                key={n}
+                onClick={() => add(n)}
+                className="rounded-md border border-[var(--color-line)] bg-white py-2 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+              >
+                +{n}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+            <button
+              key={d}
+              onClick={() => push(d)}
+              className="rounded-md border border-[var(--color-line)] bg-white py-3 text-lg font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] active:scale-95"
+            >
+              {d}
+            </button>
+          ))}
+          <button
+            onClick={() => push(".")}
+            disabled={config.mode === "integer"}
+            className="rounded-md border border-[var(--color-line)] bg-white py-3 text-lg font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] disabled:opacity-30"
+          >
+            .
+          </button>
+          <button
+            onClick={() => push("0")}
+            className="rounded-md border border-[var(--color-line)] bg-white py-3 text-lg font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary-50)] active:scale-95"
+          >
+            0
+          </button>
+          <button
+            onClick={back}
+            className="rounded-md border border-[var(--color-line)] bg-white py-3 text-lg font-bold text-[var(--color-muted)] hover:bg-[var(--color-primary-50)] active:scale-95"
+            aria-label="Backspace"
+          >
+            <i className="fa-solid fa-delete-left" />
+          </button>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button
+            onClick={clear}
+            className="flex-1 rounded-md border border-[var(--color-line)] bg-white py-2 text-xs font-semibold text-[var(--color-muted)] hover:bg-[var(--color-primary-50)]"
+          >
+            Clear
+          </button>
+          <button
+            onClick={apply}
+            className="btn-primary flex-[2]"
+          >
+            <i className="fa-solid fa-check" /> Apply
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
