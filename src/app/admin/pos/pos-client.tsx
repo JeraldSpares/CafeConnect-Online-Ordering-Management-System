@@ -8,6 +8,7 @@ import {
   applyDiscountAction,
   lookupCustomerByPhone,
   posCreateOrder,
+  type PosPaymentSplit,
 } from "./actions";
 
 type Category = { id: string; name: string; sort_order: number };
@@ -19,8 +20,31 @@ type Item = {
   category_id: string | null;
   is_available: boolean;
 };
-type Line = { id: string; name: string; price: number; qty: number };
+type Line = {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+  notes?: string;
+};
 type StockStatus = "ok" | "low" | "out";
+
+type HeldOrder = {
+  id: string;
+  label: string;
+  savedAt: number;
+  state: {
+    lines: Line[];
+    customer: string;
+    phone: string;
+    orderType: "dine_in" | "takeaway";
+    notes: string;
+    discountCode: string;
+  };
+};
+
+const HELD_STORAGE_KEY = "sulyap.pos.held.v1";
+const MAX_HELD = 10;
 
 function iconFor(name: string): string {
   const n = name.toLowerCase();
@@ -32,6 +56,27 @@ function iconFor(name: string): string {
     return "fa-cookie-bite";
   if (/juice/.test(n)) return "fa-glass-citrus";
   return "fa-mug-saucer";
+}
+
+function loadHeld(): HeldOrder[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HELD_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHeld(list: HeldOrder[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(HELD_STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // localStorage might be full or disabled — silent fail is acceptable for a non-critical feature
+  }
 }
 
 export function PosClient({
@@ -50,13 +95,13 @@ export function PosClient({
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState<string>("all");
   const [lines, setLines] = useState<Line[]>([]);
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null);
 
   const [customer, setCustomer] = useState("Walk-in");
   const [phone, setPhone] = useState("");
   const [orderType, setOrderType] = useState<"dine_in" | "takeaway">("dine_in");
   const [notes, setNotes] = useState("");
 
-  // Discount state
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -66,7 +111,6 @@ export function PosClient({
   } | null>(null);
   const [discountChecking, setDiscountChecking] = useState(false);
 
-  // Customer-by-phone lookup (loyalty + autofill)
   const [loyalty, setLoyalty] = useState<{
     fullName: string | null;
     paidOrders: number;
@@ -76,11 +120,26 @@ export function PosClient({
   const phoneLookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [collect, setCollect] = useState(true);
+  const [splitMode, setSplitMode] = useState(false);
+  // Single-payment mode mirrors the old UX so the muscle memory still works.
   const [method, setMethod] = useState<"cash" | "gcash" | "maya" | "card">(
     "cash",
   );
   const [tendered, setTendered] = useState<string>("");
   const [reference, setReference] = useState("");
+  // Split mode: array of payment lines.
+  const [splits, setSplits] = useState<PosPaymentSplit[]>([
+    { method: "cash", amount: 0, reference: "" },
+  ]);
+  const [printAfter, setPrintAfter] = useState(false);
+
+  const [held, setHeld] = useState<HeldOrder[]>([]);
+  const [heldPanelOpen, setHeldPanelOpen] = useState(false);
+
+  // Hydrate held orders from localStorage on mount only.
+  useEffect(() => {
+    setHeld(loadHeld());
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -98,11 +157,12 @@ export function PosClient({
   const discountAmount = appliedDiscount?.amount ?? 0;
   const total = Math.max(0, subtotal - discountAmount);
   const tenderedNum = Number(tendered);
+  const splitsTotal = splits.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const splitBalance = total - splitsTotal;
   const change =
     method === "cash" && tendered ? Math.max(0, tenderedNum - total) : 0;
 
-  // Debounced phone -> loyalty lookup. Fires on every keystroke but only
-  // hits the server when the input settles for 400ms AND has 7+ digits.
+  // Debounced phone -> loyalty lookup.
   useEffect(() => {
     if (phoneLookupTimer.current) clearTimeout(phoneLookupTimer.current);
     phoneLookupTimer.current = setTimeout(async () => {
@@ -128,15 +188,13 @@ export function PosClient({
     };
   }, [phone]);
 
-  // Discount can become invalid if subtotal drops below min_order_total
-  // after items are removed. Re-validate whenever subtotal changes.
+  // Re-validate discount when subtotal changes.
   useEffect(() => {
     if (!appliedDiscount) return;
     if (subtotal === 0) {
       setAppliedDiscount(null);
       return;
     }
-    // Recalculate against current subtotal — the server is the source of truth.
     let cancelled = false;
     (async () => {
       const res = await applyDiscountAction(appliedDiscount.code, subtotal);
@@ -156,8 +214,6 @@ export function PosClient({
     return () => {
       cancelled = true;
     };
-    // We intentionally key on subtotal only — re-evaluating on every code edit
-    // would thrash the network.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subtotal]);
 
@@ -182,6 +238,12 @@ export function PosClient({
         : prev.map((l) => (l.id === id ? { ...l, qty } : l)),
     );
   }
+  function setLineNote(id: string, lineNotes: string) {
+    setLines((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, notes: lineNotes } : l)),
+    );
+  }
+
   function reset() {
     setLines([]);
     setCustomer("Walk-in");
@@ -195,6 +257,9 @@ export function PosClient({
     setDiscountCode("");
     setAppliedDiscount(null);
     setLoyalty(null);
+    setSplitMode(false);
+    setSplits([{ method: "cash", amount: 0, reference: "" }]);
+    setExpandedNoteId(null);
   }
 
   async function applyDiscount() {
@@ -231,16 +296,96 @@ export function PosClient({
     }
   }
 
+  // -----------------------------------------------------------------------
+  // Held orders — park current cart into localStorage so staff can take
+  // a fast walk-in while a more complex order is being assembled.
+  // -----------------------------------------------------------------------
+  function holdCurrent() {
+    if (lines.length === 0) {
+      toast.error("Add items first before holding.");
+      return;
+    }
+    const labelHead =
+      customer && customer !== "Walk-in" ? customer : lines[0].name;
+    const newHeld: HeldOrder = {
+      id: crypto.randomUUID(),
+      label: `${labelHead} · ${lines.length} item${lines.length === 1 ? "" : "s"}`,
+      savedAt: Date.now(),
+      state: {
+        lines,
+        customer,
+        phone,
+        orderType,
+        notes,
+        discountCode: appliedDiscount?.code ?? "",
+      },
+    };
+    const next = [newHeld, ...held].slice(0, MAX_HELD);
+    setHeld(next);
+    saveHeld(next);
+    reset();
+    toast.success("Order held. Recall from the Held panel.");
+  }
+
+  function recallHeld(h: HeldOrder) {
+    setLines(h.state.lines);
+    setCustomer(h.state.customer);
+    setPhone(h.state.phone);
+    setOrderType(h.state.orderType);
+    setNotes(h.state.notes);
+    setDiscountCode(h.state.discountCode);
+    setAppliedDiscount(null); // re-apply will re-validate
+    const next = held.filter((x) => x.id !== h.id);
+    setHeld(next);
+    saveHeld(next);
+    setHeldPanelOpen(false);
+    toast.info(`Recalled "${h.label}"`);
+  }
+
+  function deleteHeld(id: string) {
+    const next = held.filter((x) => x.id !== id);
+    setHeld(next);
+    saveHeld(next);
+  }
+
+  // -----------------------------------------------------------------------
+  // Split payments
+  // -----------------------------------------------------------------------
+  function addSplit() {
+    const remaining = Math.max(0, total - splitsTotal);
+    setSplits((prev) => [
+      ...prev,
+      { method: "cash", amount: Number(remaining.toFixed(2)), reference: "" },
+    ]);
+  }
+  function removeSplit(idx: number) {
+    setSplits((prev) => prev.filter((_, i) => i !== idx));
+  }
+  function updateSplit(idx: number, patch: Partial<PosPaymentSplit>) {
+    setSplits((prev) =>
+      prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)),
+    );
+  }
+
   function submit() {
     if (lines.length === 0) {
       toast.error("Add items first.");
       return;
     }
-    if (collect && method === "cash" && tenderedNum < total) {
-      toast.error("Cash tendered is less than total.");
-      return;
+    if (collect) {
+      if (!splitMode && method === "cash" && tenderedNum < total) {
+        toast.error("Cash tendered is less than total.");
+        return;
+      }
+      if (splitMode && Math.abs(splitBalance) > 0.01) {
+        toast.error(
+          splitBalance > 0
+            ? `Still ₱${splitBalance.toFixed(2)} unpaid.`
+            : `Over by ₱${Math.abs(splitBalance).toFixed(2)} — trim a split.`,
+        );
+        return;
+      }
     }
-    // Soft warn if any line item is flagged out-of-stock by the recipe rollup.
     const outOfStock = lines.find((l) => stockMap[l.id] === "out");
     if (outOfStock) {
       const ok = window.confirm(
@@ -250,12 +395,28 @@ export function PosClient({
     }
 
     startTransition(async () => {
+      const paymentsPayload: PosPaymentSplit[] | undefined = !collect
+        ? undefined
+        : splitMode
+          ? splits.filter((s) => s.amount > 0)
+          : [
+              {
+                method,
+                amount: total,
+                reference: method === "cash" ? "" : reference,
+              },
+            ];
+
       const res = await posCreateOrder({
         customer_name: customer,
         customer_phone: phone,
         order_type: orderType,
         notes,
-        items: lines.map((l) => ({ menu_item_id: l.id, quantity: l.qty })),
+        items: lines.map((l) => ({
+          menu_item_id: l.id,
+          quantity: l.qty,
+          notes: l.notes?.trim() ? l.notes.trim() : undefined,
+        })),
         discount: appliedDiscount
           ? {
               code: appliedDiscount.code,
@@ -263,13 +424,7 @@ export function PosClient({
               id: appliedDiscount.id,
             }
           : undefined,
-        payment: collect
-          ? {
-              method,
-              amount: total,
-              reference,
-            }
-          : undefined,
+        payments: paymentsPayload,
       });
       if (res.error && !res.orderId) {
         toast.error(res.error);
@@ -277,8 +432,13 @@ export function PosClient({
       }
       if (res.error) toast.error(res.error);
       toast.success(`Order ${res.orderNumber} created.`);
+      const orderId = res.orderId;
       reset();
-      router.push(`/admin/orders/${res.orderId}`);
+      if (printAfter && orderId) {
+        router.push(`/receipt/${orderId}`);
+      } else if (orderId) {
+        router.push(`/admin/orders/${orderId}`);
+      }
     });
   }
 
@@ -286,13 +446,26 @@ export function PosClient({
     <div className="grid min-h-screen grid-cols-1 lg:h-[calc(100vh-1px)] lg:grid-cols-5 lg:overflow-hidden">
       {/* Item grid (left) */}
       <section className="flex flex-col lg:col-span-3 lg:overflow-hidden">
-        <header className="border-b border-[var(--color-line)] bg-white px-6 py-4">
-          <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
-            <i className="fa-solid fa-cash-register" /> Point of Sale
-          </p>
-          <h1 className="font-display mt-1 text-2xl font-bold text-[var(--color-primary)]">
-            New order
-          </h1>
+        <header className="flex items-start justify-between border-b border-[var(--color-line)] bg-white px-6 py-4">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[var(--color-accent)]">
+              <i className="fa-solid fa-cash-register" /> Point of Sale
+            </p>
+            <h1 className="font-display mt-1 text-2xl font-bold text-[var(--color-primary)]">
+              New order
+            </h1>
+          </div>
+          <button
+            onClick={() => setHeldPanelOpen(true)}
+            className="relative inline-flex items-center gap-1.5 rounded-full border border-[var(--color-line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+          >
+            <i className="fa-solid fa-pause" /> Held
+            {held.length > 0 && (
+              <span className="grid h-5 min-w-[20px] place-items-center rounded-full bg-[var(--color-accent)] px-1 text-[10px] font-bold text-white">
+                {held.length}
+              </span>
+            )}
+          </button>
         </header>
 
         <div className="border-b border-[var(--color-line)] bg-white px-6 py-3">
@@ -400,7 +573,6 @@ export function PosClient({
               />
             </div>
 
-            {/* Customer + loyalty preview */}
             {loyalty && (
               <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--color-line)] bg-[var(--color-primary-50)] px-3 py-2 text-xs">
                 {loyalty.fullName && !loyalty.suggestionApplied && (
@@ -456,44 +628,81 @@ export function PosClient({
               <ul className="mt-4 space-y-2">
                 {lines.map((l) => {
                   const stock = stockMap[l.id] ?? "ok";
+                  const noteOpen = expandedNoteId === l.id;
                   return (
                     <li
                       key={l.id}
-                      className="flex items-center gap-2 rounded-lg border border-[var(--color-line)] bg-white p-2"
+                      className="rounded-lg border border-[var(--color-line)] bg-white p-2"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-medium text-[var(--color-primary)]">
-                          {l.name}
-                          {stock === "out" && (
-                            <span className="ml-1 text-[10px] font-bold uppercase text-[var(--color-danger)]">
-                              · low/out
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs text-[var(--color-muted)]">
-                          {peso.format(l.price)} each
-                        </p>
-                      </div>
-                      <div className="inline-flex items-center overflow-hidden rounded-full border border-[var(--color-line)]">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-sm font-medium text-[var(--color-primary)]">
+                            {l.name}
+                            {stock === "out" && (
+                              <span className="ml-1 text-[10px] font-bold uppercase text-[var(--color-danger)]">
+                                · low/out
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-[var(--color-muted)]">
+                            {peso.format(l.price)} each
+                            {l.notes && (
+                              <span className="ml-2 italic text-[var(--color-accent)]">
+                                · {l.notes}
+                              </span>
+                            )}
+                          </p>
+                        </div>
                         <button
-                          onClick={() => setQty(l.id, l.qty - 1)}
-                          className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                          onClick={() =>
+                            setExpandedNoteId(noteOpen ? null : l.id)
+                          }
+                          title={
+                            l.notes
+                              ? `Note: ${l.notes}`
+                              : "Add a note (e.g. no sugar)"
+                          }
+                          className={`grid h-7 w-7 place-items-center rounded-full border ${
+                            l.notes || noteOpen
+                              ? "border-[var(--color-accent)] bg-[var(--color-accent-50)] text-[var(--color-accent)]"
+                              : "border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:text-[var(--color-primary)]"
+                          }`}
                         >
-                          <i className="fa-solid fa-minus text-xs" />
+                          <i className="fa-solid fa-pen-to-square text-[10px]" />
                         </button>
-                        <span className="w-7 text-center text-xs font-bold">
-                          {l.qty}
+                        <div className="inline-flex items-center overflow-hidden rounded-full border border-[var(--color-line)]">
+                          <button
+                            onClick={() => setQty(l.id, l.qty - 1)}
+                            className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                          >
+                            <i className="fa-solid fa-minus text-xs" />
+                          </button>
+                          <span className="w-7 text-center text-xs font-bold">
+                            {l.qty}
+                          </span>
+                          <button
+                            onClick={() => setQty(l.id, l.qty + 1)}
+                            className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
+                          >
+                            <i className="fa-solid fa-plus text-xs" />
+                          </button>
+                        </div>
+                        <span className="w-16 text-right text-sm font-bold text-[var(--color-primary)]">
+                          {peso.format(l.price * l.qty)}
                         </span>
-                        <button
-                          onClick={() => setQty(l.id, l.qty + 1)}
-                          className="h-7 w-7 text-[var(--color-primary)] hover:bg-[var(--color-primary-50)]"
-                        >
-                          <i className="fa-solid fa-plus text-xs" />
-                        </button>
                       </div>
-                      <span className="w-16 text-right text-sm font-bold text-[var(--color-primary)]">
-                        {peso.format(l.price * l.qty)}
-                      </span>
+                      {noteOpen && (
+                        <input
+                          autoFocus
+                          value={l.notes ?? ""}
+                          onChange={(e) => setLineNote(l.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") setExpandedNoteId(null);
+                          }}
+                          placeholder="e.g. no sugar, extra shot"
+                          className="cc-input mt-2 !py-1.5 text-xs"
+                        />
+                      )}
                     </li>
                   );
                 })}
@@ -504,7 +713,7 @@ export function PosClient({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              placeholder="Special instructions (optional)"
+              placeholder="Special instructions (optional, applies to whole order)"
               className="cc-input mt-4 text-sm"
             />
 
@@ -568,17 +777,33 @@ export function PosClient({
               )}
             </div>
 
+            {/* Payment */}
             <div className="mt-4 rounded-xl border border-[var(--color-line)] p-3">
-              <label className="flex items-center gap-2 text-sm font-medium text-[var(--color-primary)]">
-                <input
-                  type="checkbox"
-                  checked={collect}
-                  onChange={(e) => setCollect(e.target.checked)}
-                  className="h-4 w-4 accent-[var(--color-primary)]"
-                />
-                <i className="fa-solid fa-credit-card" /> Collect payment now
-              </label>
-              {collect && (
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-sm font-medium text-[var(--color-primary)]">
+                  <input
+                    type="checkbox"
+                    checked={collect}
+                    onChange={(e) => setCollect(e.target.checked)}
+                    className="h-4 w-4 accent-[var(--color-primary)]"
+                  />
+                  <i className="fa-solid fa-credit-card" /> Collect payment now
+                </label>
+                {collect && (
+                  <button
+                    onClick={() => setSplitMode((v) => !v)}
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                      splitMode
+                        ? "bg-[var(--color-primary)] text-white"
+                        : "border border-[var(--color-line)] bg-white text-[var(--color-muted)] hover:text-[var(--color-primary)]"
+                    }`}
+                  >
+                    <i className="fa-solid fa-code-branch mr-1" /> Split
+                  </button>
+                )}
+              </div>
+
+              {collect && !splitMode && (
                 <div className="mt-3 space-y-2">
                   <div className="grid grid-cols-4 gap-2">
                     {(["cash", "gcash", "maya", "card"] as const).map((m) => (
@@ -623,6 +848,97 @@ export function PosClient({
                   )}
                 </div>
               )}
+
+              {collect && splitMode && (
+                <div className="mt-3 space-y-2">
+                  {splits.map((s, i) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-12 items-center gap-2"
+                    >
+                      <select
+                        value={s.method}
+                        onChange={(e) =>
+                          updateSplit(i, {
+                            method: e.target.value as PosPaymentSplit["method"],
+                          })
+                        }
+                        className="cc-input col-span-4 !py-2 text-xs"
+                      >
+                        <option value="cash">Cash</option>
+                        <option value="gcash">GCash</option>
+                        <option value="maya">Maya</option>
+                        <option value="card">Card</option>
+                      </select>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={s.amount || ""}
+                        onChange={(e) =>
+                          updateSplit(i, {
+                            amount: Number(e.target.value) || 0,
+                          })
+                        }
+                        placeholder="0.00"
+                        className="cc-input col-span-4 !py-2 text-xs"
+                      />
+                      <input
+                        value={s.reference ?? ""}
+                        onChange={(e) =>
+                          updateSplit(i, { reference: e.target.value })
+                        }
+                        placeholder="Ref #"
+                        className="cc-input col-span-3 !py-2 text-xs"
+                      />
+                      <button
+                        onClick={() => removeSplit(i)}
+                        disabled={splits.length <= 1}
+                        className="col-span-1 grid h-7 w-7 place-items-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)] disabled:opacity-30"
+                        aria-label="Remove split"
+                      >
+                        <i className="fa-solid fa-xmark text-xs" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={addSplit}
+                    className="w-full rounded-md border border-dashed border-[var(--color-line)] py-1.5 text-xs font-semibold text-[var(--color-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                  >
+                    <i className="fa-solid fa-plus" /> Add split
+                  </button>
+                  <p className="text-xs">
+                    Allocated:{" "}
+                    <span className="font-bold text-[var(--color-primary)]">
+                      {peso.format(splitsTotal)}
+                    </span>
+                    {" · "}
+                    {Math.abs(splitBalance) < 0.01 ? (
+                      <span className="font-bold text-[var(--color-success)]">
+                        balanced
+                      </span>
+                    ) : splitBalance > 0 ? (
+                      <span className="font-bold text-[var(--color-danger)]">
+                        {peso.format(splitBalance)} short
+                      </span>
+                    ) : (
+                      <span className="font-bold text-[var(--color-danger)]">
+                        {peso.format(Math.abs(splitBalance))} over
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              <label className="mt-3 flex items-center gap-2 text-xs text-[var(--color-muted)]">
+                <input
+                  type="checkbox"
+                  checked={printAfter}
+                  onChange={(e) => setPrintAfter(e.target.checked)}
+                  className="h-3.5 w-3.5 accent-[var(--color-primary)]"
+                />
+                <i className="fa-solid fa-print" /> Print receipt after submit
+              </label>
             </div>
           </div>
 
@@ -650,9 +966,16 @@ export function PosClient({
               <button
                 onClick={reset}
                 disabled={pending || lines.length === 0}
-                className="flex-1 rounded-full border border-[var(--color-line)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--color-muted)] hover:bg-[var(--color-primary-50)] disabled:opacity-50"
+                className="flex-1 rounded-full border border-[var(--color-line)] bg-white px-3 py-2.5 text-xs font-semibold text-[var(--color-muted)] hover:bg-[var(--color-primary-50)] disabled:opacity-50"
               >
                 <i className="fa-solid fa-rotate-left" /> Clear
+              </button>
+              <button
+                onClick={holdCurrent}
+                disabled={pending || lines.length === 0}
+                className="flex-1 rounded-full border border-[var(--color-accent)] bg-white px-3 py-2.5 text-xs font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent)] hover:text-white disabled:opacity-50"
+              >
+                <i className="fa-solid fa-pause" /> Hold
               </button>
               <button
                 onClick={submit}
@@ -673,6 +996,68 @@ export function PosClient({
           </footer>
         </div>
       </aside>
+
+      {/* Held orders panel */}
+      {heldPanelOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setHeldPanelOpen(false)}
+        >
+          <div
+            className="cc-card w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="mb-3 flex items-center justify-between">
+              <h3 className="font-display text-lg font-bold text-[var(--color-primary)]">
+                <i className="fa-solid fa-pause mr-1" /> Held orders
+              </h3>
+              <button
+                onClick={() => setHeldPanelOpen(false)}
+                className="grid h-8 w-8 place-items-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary)]"
+              >
+                <i className="fa-solid fa-xmark" />
+              </button>
+            </header>
+            {held.length === 0 ? (
+              <p className="py-8 text-center text-sm text-[var(--color-muted)]">
+                Nothing parked. Press <strong>Hold</strong> on the cart to stash
+                an order.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {held.map((h) => (
+                  <li
+                    key={h.id}
+                    className="flex items-center gap-2 rounded-lg border border-[var(--color-line)] bg-white p-3 text-sm"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate font-semibold text-[var(--color-primary)]">
+                        {h.label}
+                      </p>
+                      <p className="text-xs text-[var(--color-muted)]">
+                        Held {new Date(h.savedAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => recallHeld(h)}
+                      className="rounded-full bg-[var(--color-primary)] px-3 py-1 text-xs font-semibold text-white hover:opacity-90"
+                    >
+                      Recall
+                    </button>
+                    <button
+                      onClick={() => deleteHeld(h.id)}
+                      className="grid h-7 w-7 place-items-center rounded-full text-[var(--color-muted)] hover:bg-[var(--color-danger-bg)] hover:text-[var(--color-danger)]"
+                      aria-label="Delete held"
+                    >
+                      <i className="fa-solid fa-trash text-xs" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

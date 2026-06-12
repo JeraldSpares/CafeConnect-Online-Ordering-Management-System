@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
+export type PosPaymentSplit = {
+  method: "cash" | "gcash" | "maya" | "card";
+  amount: number;
+  reference?: string;
+};
+
 export type PosOrderInput = {
   customer_name: string;
   customer_phone?: string;
@@ -14,11 +20,8 @@ export type PosOrderInput = {
     amount: number;
     id: string | null;
   };
-  payment?: {
-    method: "cash" | "gcash" | "maya" | "card";
-    amount: number;
-    reference?: string;
-  };
+  // Multiple payment splits — empty array means "don't collect now".
+  payments?: PosPaymentSplit[];
 };
 
 export async function posCreateOrder(input: PosOrderInput) {
@@ -76,26 +79,40 @@ export async function posCreateOrder(input: PosOrderInput) {
     }
   }
 
-  if (input.payment) {
+  if (input.payments && input.payments.length > 0) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    // Always charge the server-computed total, not whatever the client passed.
-    const { error: payErr } = await supabase.from("transactions").insert({
-      order_id: orderId,
-      payment_method: input.payment.method,
-      amount: finalTotal,
-      status: "paid",
-      reference_number: input.payment.reference || null,
-      processed_by: user?.id ?? null,
-    });
-    if (payErr) {
-      return {
-        error: `Order created but payment failed: ${payErr.message}`,
-        orderId,
-        orderNumber,
-      };
+    // Cap the total of all splits at finalTotal so client manipulation
+    // can't push a "paid" total above what the order actually costs.
+    let allocated = 0;
+    const rows = input.payments
+      .filter((p) => p.amount > 0)
+      .map((p) => {
+        const remaining = Math.max(0, finalTotal - allocated);
+        const amt = Math.min(p.amount, remaining);
+        allocated += amt;
+        return {
+          order_id: orderId,
+          payment_method: p.method,
+          amount: amt,
+          status: "paid",
+          reference_number: p.reference || null,
+          processed_by: user?.id ?? null,
+        };
+      })
+      .filter((r) => r.amount > 0);
+
+    if (rows.length > 0) {
+      const { error: payErr } = await supabase.from("transactions").insert(rows);
+      if (payErr) {
+        return {
+          error: `Order created but payment failed: ${payErr.message}`,
+          orderId,
+          orderNumber,
+        };
+      }
     }
   }
 
@@ -128,7 +145,6 @@ export async function applyDiscountAction(code: string, subtotal: number) {
   if (amt <= 0)
     return { ok: false, error: "Code invalid, expired, or below the minimum." };
 
-  // Fetch the discount row so we can pin the order to it (audit trail).
   const { data: row } = await supabase
     .from("discounts")
     .select("id, code, description")
@@ -145,9 +161,7 @@ export async function applyDiscountAction(code: string, subtotal: number) {
 }
 
 // =========================================================================
-// lookupCustomerByPhone — combined autosuggest + loyalty status. Used to
-// pre-fill the customer name and show "🪙 X / 10 stamps" in the POS cart.
-// Returns null fields when the phone is short or unknown.
+// lookupCustomerByPhone — combined autosuggest + loyalty status.
 // =========================================================================
 export async function lookupCustomerByPhone(phone: string) {
   const cleaned = phone.replace(/[^0-9]/g, "");
